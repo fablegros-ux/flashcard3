@@ -3,7 +3,6 @@ import os, re, csv, io, zipfile
 import tempfile
 from typing import List, Dict, Tuple, Optional
 import streamlit as st
-
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
