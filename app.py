@@ -1,8 +1,9 @@
-# cell_id: 9961351c - Mis à jour le 2024-05-18 16:08 (Paris)
+# cell_id: 9961351c - Mis à jour le 2024-05-18 17:12 (Paris)
 import os, re, csv, io, zipfile
 import tempfile
 from typing import List, Dict, Tuple, Optional
 import streamlit as st
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -114,6 +115,7 @@ def read_cards_from_csv(csv_file_content: str) -> List[Dict[str, str]]:
     - question : colonne 'question' (ou 1re colonne si pas d'en-tête)
     - texte verso : colonne 'texte' / 'reponse' / 'réponse' / 'answer' (ou 2e/3e colonne selon présence d'en-tête)
     - image recto : colonne 'image_recto' / 'imagerecto' (ou 3e colonne si pas d'en-tête)
+    - image verso : colonne 'image_verso' / 'imageverso' (ou 4e colonne si pas d'en-tête)
     """
     # Use io.StringIO to treat the string content as a file
     f = io.StringIO(csv_file_content)
@@ -126,7 +128,7 @@ def read_cards_from_csv(csv_file_content: str) -> List[Dict[str, str]]:
 
     first = rows[0]
     norm_first = [normalize_header(x) for x in first]
-    has_header = any(x in ("question","q","texte","text","reponse","réponse","answer","reponseverso","verso", "image_recto", "imagerecto") for x in norm_first)
+    has_header = any(x in ("question","q","texte","text","reponse","réponse","answer","reponseverso","verso", "image_recto", "imagerecto", "image_verso", "imageverso") for x in norm_first)
 
     def get_field(d: Dict[str,str], keys: List[str], fallback: str="") -> str:
         for k in keys:
@@ -161,9 +163,10 @@ def read_cards_from_csv(csv_file_content: str) -> List[Dict[str, str]]:
 
             txt = get_field(d, ["texte","text","reponse","réponse","answer","verso","reponseverso"])
             card_image_recto = get_field(d, ["image_recto", "imagerecto"])
-            out.append({"question": question_text, "texte": txt, "card_color_key": card_color_string, "image_recto": card_image_recto})
+            card_image_verso = get_field(d, ["image_verso", "imageverso"])
+            out.append({"question": question_text, "texte": txt, "card_color_key": card_color_string, "image_recto": card_image_recto, "image_verso": card_image_verso})
     else:
-        # Sans en-tête : col1=question, col2=texte, col3=image_recto (si présente)
+        # Sans en-tête : col1=question, col2=texte, col3=image_recto, col4=image_verso
         for r in rows:
             if not any(str(x).strip() for x in r):
                 continue
@@ -183,7 +186,8 @@ def read_cards_from_csv(csv_file_content: str) -> List[Dict[str, str]]:
 
             txt = (r[1].strip() if len(r) > 1 else "") # Second column for verso text
             card_image_recto = (r[2].strip() if len(r) > 2 else "") # Third column for recto image
-            out.append({"question": question_text, "texte": txt, "card_color_key": card_color_string, "image_recto": card_image_recto})
+            card_image_verso = (r[3].strip() if len(r) > 3 else "") # Fourth column for verso image
+            out.append({"question": question_text, "texte": txt, "card_color_key": card_color_string, "image_recto": card_image_recto, "image_verso": card_image_verso})
 
     return out
 
@@ -403,14 +407,94 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
     draw_cut_marks(c, grid)
     c.showPage()
 
-    # -------- Verso (colonnes inversées) --------
+    # -------- Verso --------
     for i in range(NB_CARTES):
         row = i // COLS
         col = i % COLS
         back_col = (COLS - 1 - col) # inversion colonnes pour impression recto/verso
         x, y = card_xy(grid, back_col, row)
 
-        draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, cards_to_process[i].get("texte", ""), style_verso)
+        # --- Image Verso --- #
+        card_verso_image_filename = cards_to_process[i].get("image_verso", "").strip()
+        current_verso_pil_image = None
+        if card_verso_image_filename and uploaded_recto_images and card_verso_image_filename in uploaded_recto_images:
+            current_verso_pil_image = uploaded_recto_images[card_verso_image_filename] # Assuming uploaded_recto_images can also contain verso images
+
+        image_to_draw_verso_path = None
+        if current_verso_pil_image:
+            try:
+                # For verso, assume white background for compositing if original is RGBA
+                bg_color_tuple_verso = (255, 255, 255) # White background
+
+                # Create a new RGB image with the desired background color
+                alpha_composite_img_verso = Image.new('RGB', current_verso_pil_image.size, bg_color_tuple_verso)
+                alpha_composite_img_verso.paste(current_verso_pil_image, (0, 0), current_verso_pil_image)
+
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_png_file_verso:
+                    image_to_draw_verso_path = temp_png_file_verso.name
+                    alpha_composite_img_verso.save(temp_png_file_verso, format='PNG')
+                temp_image_files_to_clean.append(image_to_draw_verso_path)
+            except Exception as e:
+                st.error(f"Erreur lors du compositing de l'image de verso pour la carte {i}: {e}")
+                image_to_draw_verso_path = None
+
+        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
+
+        if image_to_draw_verso_path:
+            if not verso_text_for_card:
+                # No text, image takes up 90% of card width, centered
+                try:
+                    pil_img_verso = Image.open(image_to_draw_verso_path)
+                    original_w_verso, original_h_verso = pil_img_verso.size
+                    pil_img_verso.close()
+
+                    img_w_verso = 0.9 * grid.card_w
+                    if original_w_verso == 0:
+                        raise ValueError("Verso image has zero width")
+                    img_h_verso = (original_h_verso / original_w_verso) * img_w_verso
+
+                    max_allowed_h_verso = 0.9 * grid.card_h
+
+                    if img_h_verso > max_allowed_h_verso:
+                        img_h_verso = max_allowed_h_verso
+                        if original_h_verso == 0:
+                            raise ValueError("Verso image has zero height after width check")
+                        img_w_verso = (original_w_verso / original_h_verso) * img_h_verso
+
+                    # Calculate positions for centering the *final* sized image
+                    img_x_verso = x + (grid.card_w - img_w_verso) / 2
+                    img_y_verso = y + (grid.card_h - img_h_verso) / 2
+
+                    c.drawImage(image_to_draw_verso_path, img_x_verso, img_y_verso,
+                                width=img_w_verso, height=img_h_verso, preserveAspectRatio=True)
+                except Exception as e:
+                    st.error(f"Erreur lors du dessin de l'image de verso (90% largeur, sans texte) : {e}")
+                    draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, "", style_verso)
+            else:
+                # Text is present, use original image/text layout
+                img_h_verso = grid.card_h / 2
+                img_w_verso = img_h_verso
+
+                img_x_verso = x + (grid.card_w - img_w_verso) / 2
+                img_y_verso = y + ELEMENT_SPACING
+
+                text_box_h_verso = grid.card_h - (3 * ELEMENT_SPACING + img_h_verso)
+
+                text_box_x_verso = x
+                text_box_y_verso = img_y_verso + img_h_verso + ELEMENT_SPACING
+                text_box_w_verso = grid.card_w
+
+                try:
+                    c.drawImage(image_to_draw_verso_path, img_x_verso, img_y_verso,
+                                width=img_w_verso, height=img_h_verso, preserveAspectRatio=True)
+                except Exception as e:
+                    st.error(f"Erreur lors du dessin de l'image de verso (avec texte) : {e}")
+                    draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, verso_text_for_card, style_verso)
+                    continue
+                draw_centered_text_in_box(c, text_box_x_verso, text_box_y_verso, text_box_w_verso, text_box_h_verso, verso_text_for_card, style_verso)
+        else:
+            # No image or image processing failed, draw text in the full card area
+            draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, verso_text_for_card, style_verso)
 
     # Removed draw_cut_marks for verso page as requested.
     c.save()
@@ -430,12 +514,12 @@ st.title("Générateur de cartes recto/verso imprimables multiusages")
 
 st.write("Uploadez votre fichier CSV et un fichier ZIP d'images (facultatif) pour générer des cartes recto/verso sur une feuille A4 pdf.")
 st.text("Le contenu du fichier CSV est constituée au maximum du nombre de cartes sélectionné (10 ou 9) et de lignes du type :")
-st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png")
+st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
 st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc ou un code hexadécimal comme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le bleu.")
-st.write("Le nom du fichier image dans la 3e colonne du CSV doit correspondre exactement au nom d'un fichier PNG/JPG dans le ZIP d'images recto.")
+st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans le ZIP d'images.")
 st.write("")
 
 # Add Card Layout Selection
@@ -447,7 +531,7 @@ card_layout = st.selectbox(
 )
 
 # Update global COLS, ROWS, NB_CARTES based on selection
-#global COLS, ROWS, NB_CARTES Moved this line to fix SyntaxError
+global COLS, ROWS, NB_CARTES
 if card_layout == "Horizontal (2x5 cartes)":
     COLS, ROWS = 2, 5
     NB_CARTES = 10
@@ -461,11 +545,11 @@ st.info(f"Disposition sélectionnée : {card_layout}. Nombre de cartes par page 
 uploaded_csv_file = st.file_uploader("Uploader le fichier CSV", type=["csv"])
 
 # Image Upload for Recto (multiple images via ZIP)
-uploaded_recto_images_zip = st.file_uploader("Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos", type=["zip"])
+uploaded_recto_images_zip = st.file_uploader("Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos", type=["zip"])
 
 recto_images_dict = {}
 if uploaded_recto_images_zip:
-    st.info("Décompression des images de recto...")
+    st.info("Décompression des images...")
     with tempfile.TemporaryDirectory() as tempdir:
         with zipfile.ZipFile(uploaded_recto_images_zip, 'r') as zip_ref:
             zip_ref.extractall(tempdir)
@@ -476,11 +560,11 @@ if uploaded_recto_images_zip:
                     img = Image.open(filepath).convert('RGBA') # Convert to RGBA for consistent handling
                     recto_images_dict[filename] = img
                 except Exception as e:
-                    st.warning(f"Impossible de charger l'image de recto {filename}: {e}")
+                    st.warning(f"Impossible de charger l'image {filename}: {e}")
     if recto_images_dict:
-        st.success(f"{len(recto_images_dict)} images de recto chargées depuis le fichier ZIP.")
+        st.success(f"{len(recto_images_dict)} images chargées depuis le fichier ZIP.")
     else:
-        st.warning("Aucune image valide trouvée dans le fichier ZIP des images de recto.")
+        st.warning("Aucune image valide trouvée dans le fichier ZIP.")
 
 
 if uploaded_csv_file is None:
@@ -499,7 +583,7 @@ elif uploaded_csv_file is not None:
     if st.button("Générer le PDF"):
         if cards:
             output_buffer = io.BytesIO()
-            # Pass the dictionary of recto images to build_pdf
+            # Pass the dictionary of recto and verso images to build_pdf
             build_pdf(cards, default_back_color, output_buffer, uploaded_recto_images=recto_images_dict)
 
             st.success(f"PDF généré : {OUTPUT_PDF}")
