@@ -531,7 +531,7 @@ card_layout = st.selectbox(
 )
 
 # Update global COLS, ROWS, NB_CARTES based on selection
-global COLS, ROWS, NB_CARTES
+#global COLS, ROWS, NB_CARTES
 if card_layout == "Horizontal (2x5 cartes)":
     COLS, ROWS = 2, 5
     NB_CARTES = 10
