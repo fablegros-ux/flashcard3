@@ -1,7 +1,7 @@
 # flashcard3
 # Générateur de cartes recto/verso imprimables (PDF A4)
 
-Application Streamlit permettant de générer des cartes **recto/verso** multiusages à partir d’un fichier **CSV** (et d’un ZIP d’images optionnel), puis d’exporter un **PDF A4** en **orientation horizontale ou verticale**.
+Application Streamlit permettant de générer des cartes **recto/verso** multi-usages à partir d’un fichier **CSV** (et d’un ZIP d’images optionnel), puis d’exporter un **PDF A4 avec des cartes au format portait ou paysage**.
 
 ## Fonctionnalités
 - Import d’un fichier **CSV** (contenu des cartes)
