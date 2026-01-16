@@ -46,4 +46,4 @@ le nom doit correspondre au caractère près (majuscules/minuscules comprises)
 
 Conseil : enregistrez le CSV en UTF-8 et utilisez le point-virgule ; comme séparateur.
 
-Auteur Fabrice Legros fablegros@aol.com
+Auteur Fabrice Legros fablegros@gmail.com
