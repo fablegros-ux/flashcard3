@@ -18,10 +18,9 @@ from PIL import Image
 # Réglages
 # ----------------------------
 OUTPUT_PDF = "cartes_recto_verso.pdf"
-# NB_CARTES, COLS, ROWS will be dynamically set by Streamlit UI
-# Initial values for clarity, but they will be overwritten
-NB_CARTES = 10
-COLS, ROWS = 2, 5
+# NB_CARTES, COLS, ROWS set to portrait layout (3x3 cards)
+NB_CARTES = 9
+COLS, ROWS = 3, 3
 
 MARGIN = 1.0 * cm
 GAP = 0.35 * cm              # espace entre cartes (découpe)
@@ -555,7 +554,7 @@ def build_pdf(
 st.title("Générateur de cartes recto/verso imprimables multiusages")
 
 st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer des cartes recto/verso sur une feuille A4 en pdf.")
-st.text("Le contenu du fichier CSV est constituée au maximum du nombre de lignes correspondant au nombre de cartes sélectionné (carte au format paysage : 10, carte au format portrait : 9)") 
+st.text("Le contenu du fichier CSV est constitué au maximum du nombre de lignes correspondant au nombre de cartes (carte au format portrait : 9)")
 st.write(" le format attendu du CSV est le suivant :") 
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
@@ -566,24 +565,8 @@ st.write("Quand une couleur est indiquée pour le recto, vous pouvez choisir un 
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
-# Add Card Layout Selection
-st.subheader("Choisissez la disposition des cartes")
-card_layout = st.selectbox(
-    "Format des cartes sur la page A4:",
-    ("Paysage (2x5 cartes)", "Portrait (3x3 cartes)"),
-    index=0 # Default to horizontal
-)
-
-# Update global COLS, ROWS, NB_CARTES based on selection
-#global COLS, ROWS, NB_CARTES
-if card_layout == "Paysage (2x5 cartes)":
-    COLS, ROWS = 2, 5
-    NB_CARTES = 10
-else: # Portrait (3x3 cartes)
-    COLS, ROWS = 3, 3
-    NB_CARTES = 9
-
-st.info(f"Disposition sélectionnée : {card_layout}. Nombre de cartes par page : {NB_CARTES}.")
+st.subheader("Disposition des cartes")
+st.info(f"Format portrait (3x3 cartes). Nombre de cartes par page : {NB_CARTES}.")
 
 # Option for recto color style when a color is specified
 recto_color_style = st.radio(
