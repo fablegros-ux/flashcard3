@@ -326,10 +326,6 @@ def build_pdf(
             "Recto", fontName=base_font, fontSize=16, leading=18,
             alignment=TA_CENTER, textColor=recto_text_color
         )
-        style_recto_with_image = ParagraphStyle(
-            "RectoImage", fontName=base_font, fontSize=14, leading=16,
-            alignment=TA_CENTER, textColor=recto_text_color
-        )
 
         # Fill recto with background color
         c.setFillColor(recto_fill_color)
@@ -414,14 +410,23 @@ def build_pdf(
                     # If image drawing fails, draw empty text centrally as a fallback
                     draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, "", style_recto)
             else:
-                # Text is present, use a fixed 40% image height and smaller text
-                img_h = 0.4 * content_h
+                # Text is present, use original image/text layout with safe sizing
+                available_h = max(content_h - (3 * ELEMENT_SPACING), 0)
+                min_text_box_h = 1.0 * cm
+                if available_h <= min_text_box_h:
+                    img_h = max(available_h * 0.4, 0)
+                else:
+                    img_h = min(content_h / 2, max(available_h - min_text_box_h, 0))
+
+                # Text is present, use original image/text layout
+                img_h = content_h / 2
                 img_w = img_h
 
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + ELEMENT_SPACING
 
-                text_box_h = max(content_h - (3 * ELEMENT_SPACING + img_h), 1)
+                text_box_h = max(available_h - img_h, 1)
+                text_box_h = content_h - (3 * ELEMENT_SPACING + img_h)
 
                 text_box_x = content_x
                 text_box_y = img_y + img_h + ELEMENT_SPACING
@@ -433,7 +438,7 @@ def build_pdf(
                 except Exception as e:
                     st.error(f"Erreur lors du dessin de l'image (avec texte) : {e}")
                     # Fallback: draw text in full card area if image drawing still fails
-                    draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto_with_image)
+                    draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
                     continue
 
                 draw_centered_text_in_box(c, text_box_x, text_box_y, text_box_w, text_box_h, question_text_for_card, style_recto_with_image)
