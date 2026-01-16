@@ -410,6 +410,14 @@ def build_pdf(
                     # If image drawing fails, draw empty text centrally as a fallback
                     draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, "", style_recto)
             else:
+                # Text is present, use original image/text layout with safe sizing
+                available_h = max(content_h - (3 * ELEMENT_SPACING), 0)
+                min_text_box_h = 1.0 * cm
+                if available_h <= min_text_box_h:
+                    img_h = max(available_h * 0.4, 0)
+                else:
+                    img_h = min(content_h / 2, max(available_h - min_text_box_h, 0))
+
                 # Text is present, use original image/text layout
                 img_h = content_h / 2
                 img_w = img_h
@@ -417,6 +425,7 @@ def build_pdf(
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + ELEMENT_SPACING
 
+                text_box_h = max(available_h - img_h, 1)
                 text_box_h = content_h - (3 * ELEMENT_SPACING + img_h)
 
                 text_box_x = content_x
