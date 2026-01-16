@@ -418,12 +418,15 @@ def build_pdf(
                 else:
                     img_h = min(content_h / 2, max(available_h - min_text_box_h, 0))
 
+                # Text is present, use original image/text layout
+                img_h = content_h / 2
                 img_w = img_h
 
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + ELEMENT_SPACING
 
                 text_box_h = max(available_h - img_h, 1)
+                text_box_h = content_h - (3 * ELEMENT_SPACING + img_h)
 
                 text_box_x = content_x
                 text_box_y = img_y + img_h + ELEMENT_SPACING
