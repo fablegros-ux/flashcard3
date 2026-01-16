@@ -6,7 +6,7 @@ import streamlit as st
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 from reportlab.lib import colors
 from reportlab.platypus import Frame, Paragraph, KeepInFrame
 from reportlab.lib.styles import ParagraphStyle
@@ -27,6 +27,7 @@ MARGIN = 1.0 * cm
 GAP = 0.35 * cm              # espace entre cartes (découpe)
 BORDER_WIDTH = 1
 ELEMENT_SPACING = 0.8 * cm   # Espace entre les éléments (texte, image) et les bords de la carte
+RECTO_FRAME_WIDTH = 4 * mm   # Largeur du cadre pour l'option recto "cadre"
 
 # Couleurs (recto)
 COLOR_MAP = {
@@ -272,7 +273,13 @@ def draw_cut_marks(c: canvas.Canvas, grid: Grid):
         c.line(0, y_bottom_card, page_w, y_bottom_card) # Bottom edge of card, extends full page
         c.line(0, y_top_card, page_w, y_top_card) # Top edge of card, extends full page
 
-def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, output_buffer: io.BytesIO, uploaded_recto_images: Dict[str, Image.Image] = None):
+def build_pdf(
+    cards: List[Dict[str,str]],
+    default_back_color: colors.Color,
+    output_buffer: io.BytesIO,
+    uploaded_recto_images: Dict[str, Image.Image] = None,
+    recto_color_style: str = "Remplissage (couleur pleine)"
+):
     # Retrieve current COLS, ROWS, NB_CARTES from global scope
     global COLS, ROWS, NB_CARTES
     grid = compute_grid()
@@ -299,15 +306,41 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
+        use_frame_style = recto_color_style == "Cadre 4 mm" and card_specific_color_string
+        recto_fill_color = current_back_color
+        recto_image_background_color = current_back_color
+        content_x, content_y = x, y
+        content_w, content_h = grid.card_w, grid.card_h
+
+        if use_frame_style:
+            recto_fill_color = colors.white
+            recto_image_background_color = colors.white
+            content_x = x + RECTO_FRAME_WIDTH
+            content_y = y + RECTO_FRAME_WIDTH
+            content_w = grid.card_w - (2 * RECTO_FRAME_WIDTH)
+            content_h = grid.card_h - (2 * RECTO_FRAME_WIDTH)
+
         # Recto text style: color adapted to background (depends on current_back_color)
+        recto_text_color = colors.black if use_frame_style else (colors.white if is_dark(current_back_color) else colors.black)
         style_recto = ParagraphStyle(
             "Recto", fontName=base_font, fontSize=16, leading=18,
-            alignment=TA_CENTER, textColor=(colors.white if is_dark(current_back_color) else colors.black)
+            alignment=TA_CENTER, textColor=recto_text_color
         )
 
         # Fill recto with background color
-        c.setFillColor(current_back_color)
+        c.setFillColor(recto_fill_color)
         c.rect(x, y, grid.card_w, grid.card_h, stroke=0, fill=1)
+        if use_frame_style:
+            c.setLineWidth(RECTO_FRAME_WIDTH)
+            c.setStrokeColor(current_back_color)
+            c.rect(
+                x + RECTO_FRAME_WIDTH / 2,
+                y + RECTO_FRAME_WIDTH / 2,
+                grid.card_w - RECTO_FRAME_WIDTH,
+                grid.card_h - RECTO_FRAME_WIDTH,
+                stroke=1,
+                fill=0
+            )
 
         question_text_for_card = cards_to_process[i].get("question", "").strip()
         card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
@@ -319,9 +352,9 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
         image_to_draw_path = None
         if current_recto_pil_image:
             try:
-                r = current_back_color.red
-                g = current_back_color.green
-                b = current_back_color.blue
+                r = recto_image_background_color.red
+                g = recto_image_background_color.green
+                b = recto_image_background_color.blue
                 bg_color_tuple = (int(r * 255), int(g * 255), int(b * 255))
 
                 # Create a new RGB image with the desired background color
@@ -349,7 +382,7 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
                     pil_img.close() # Close the image file
 
                     # Desired width is 90% of the card's width
-                    img_w = 0.9 * grid.card_w
+                    img_w = 0.9 * content_w
 
                     # Calculate proportional height
                     if original_w == 0:
@@ -357,7 +390,7 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
                     img_h = (original_h / original_w) * img_w
 
                     # Now, check if this calculated height exceeds 90% of the card's height
-                    max_allowed_h = 0.9 * grid.card_h
+                    max_allowed_h = 0.9 * content_h
 
                     if img_h > max_allowed_h:
                         # If scaling by width makes it too tall, scale by height instead.
@@ -367,28 +400,34 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
                         img_w = (original_w / original_h) * img_h # Recalculate width based on new height
 
                     # Calculate positions for centering the *final* sized image
-                    img_x = x + (grid.card_w - img_w) / 2
-                    img_y = y + (grid.card_h - img_h) / 2
+                    img_x = content_x + (content_w - img_w) / 2
+                    img_y = content_y + (content_h - img_h) / 2
 
                     c.drawImage(image_to_draw_path, img_x, img_y,
                                 width=img_w, height=img_h, preserveAspectRatio=True)
                 except Exception as e:
                     st.error(f"Erreur lors du dessin de l'image (90% largeur, sans texte) : {e}")
                     # If image drawing fails, draw empty text centrally as a fallback
-                    draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, "", style_recto)
+                    draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, "", style_recto)
             else:
-                # Text is present, use original image/text layout
-                img_h = grid.card_h / 2
+                # Text is present, use original image/text layout with safe sizing
+                available_h = max(content_h - (3 * ELEMENT_SPACING), 0)
+                min_text_box_h = 1.0 * cm
+                if available_h <= min_text_box_h:
+                    img_h = max(available_h * 0.4, 0)
+                else:
+                    img_h = min(content_h / 2, max(available_h - min_text_box_h, 0))
+
                 img_w = img_h
 
-                img_x = x + (grid.card_w - img_w) / 2
-                img_y = y + ELEMENT_SPACING
+                img_x = content_x + (content_w - img_w) / 2
+                img_y = content_y + ELEMENT_SPACING
 
-                text_box_h = grid.card_h - (3 * ELEMENT_SPACING + img_h)
+                text_box_h = max(available_h - img_h, 1)
 
-                text_box_x = x
+                text_box_x = content_x
                 text_box_y = img_y + img_h + ELEMENT_SPACING
-                text_box_w = grid.card_w
+                text_box_w = content_w
 
                 try:
                     c.drawImage(image_to_draw_path, img_x, img_y,
@@ -396,13 +435,13 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
                 except Exception as e:
                     st.error(f"Erreur lors du dessin de l'image (avec texte) : {e}")
                     # Fallback: draw text in full card area if image drawing still fails
-                    draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, question_text_for_card, style_recto)
+                    draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
                     continue
 
                 draw_centered_text_in_box(c, text_box_x, text_box_y, text_box_w, text_box_h, question_text_for_card, style_recto)
         else:
             # No image or image processing failed, draw text in the full card area
-            draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, question_text_for_card, style_recto)
+            draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
 
     draw_cut_marks(c, grid)
     c.showPage()
@@ -520,6 +559,7 @@ st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
 st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc ou un code hexadécimal comme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le bleu.")
+st.write("Quand une couleur est indiquée pour le recto, vous pouvez choisir un remplissage complet ou un cadre de 4 mm via l'option ci-dessous.")
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
@@ -541,6 +581,13 @@ else: # Portrait (3x3 cartes)
     NB_CARTES = 9
 
 st.info(f"Disposition sélectionnée : {card_layout}. Nombre de cartes par page : {NB_CARTES}.")
+
+# Option for recto color style when a color is specified
+recto_color_style = st.radio(
+    "Style du recto quand une couleur est indiquée :",
+    ("Remplissage (couleur pleine)", "Cadre 4 mm"),
+    index=0
+)
 
 # CSV Upload
 uploaded_csv_file = st.file_uploader("Uploader le fichier CSV", type=["csv"])
@@ -585,7 +632,13 @@ elif uploaded_csv_file is not None:
         if cards:
             output_buffer = io.BytesIO()
             # Pass the dictionary of recto and verso images to build_pdf
-            build_pdf(cards, default_back_color, output_buffer, uploaded_recto_images=recto_images_dict)
+            build_pdf(
+                cards,
+                default_back_color,
+                output_buffer,
+                uploaded_recto_images=recto_images_dict,
+                recto_color_style=recto_color_style
+            )
 
             st.success(f"PDF généré : {OUTPUT_PDF}")
             st.download_button(
