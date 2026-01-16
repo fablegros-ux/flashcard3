@@ -595,3 +595,5 @@ elif uploaded_csv_file is not None:
             )
         else:
             st.error("Aucune carte n'a pu être lue depuis le fichier CSV. La génération du PDF est annulée.")
+st.markdown("---")
+st.caption("ℹ️ Documentation et format du fichier CSV : https://github.com/fablegros-ux/flashcard3#readme")
