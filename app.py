@@ -440,7 +440,7 @@ def build_pdf(
                     draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
                     continue
 
-                draw_centered_text_in_box(c, text_box_x, text_box_y, text_box_w, text_box_h, question_text_for_card, style_recto_with_image)
+                draw_centered_text_in_box(c, text_box_x, text_box_y, text_box_w, text_box_h, question_text_for_card, style_recto)
         else:
             # No image or image processing failed, draw text in the full card area
             draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
