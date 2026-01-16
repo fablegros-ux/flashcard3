@@ -1,49 +1,59 @@
 # flashcard3
-Générateur de cartes recto/verso imprimables (multi-usages)
+# Générateur de cartes recto/verso imprimables (PDF A4)
 
-Importez :
+Application Streamlit permettant de générer des cartes **recto/verso** multiusages à partir d’un fichier **CSV** (et d’un ZIP d’images optionnel), puis d’exporter un **PDF A4** en **orientation horizontale ou verticale**.
 
-un fichier CSV (obligatoire)
+## Fonctionnalités
+- Import d’un fichier **CSV** (contenu des cartes)
+- Import optionnel d’un **ZIP d’images** (PNG/JPG) pour illustrer recto/verso
+- Génération d’un PDF A4 avec cartes **recto/verso** prêtes à imprimer
+- Couleur du **recto** par carte : nom de couleur ou code hexadécimal
 
-un fichier ZIP d’images (facultatif)
+## Format attendu du CSV
 
-L’application génère un PDF A4 de cartes recto/verso, en orientation portrait ou paysage, avec 9 ou 10 cartes par page selon votre choix.
+Le CSV contient **au maximum 9 à 10 lignes** (selon le format choisi dans l’application).
+Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des points-virgules `;` :
 
-Format du fichier CSV
+1. **Question** (peut contenir une couleur entre parenthèses)
+2. **Réponse**
+3. *(optionnel)* **Image recto** (nom de fichier)
+4. *(optionnel)* **Image verso** (nom de fichier)
 
-Chaque ligne correspond à une carte (jusqu’au nombre sélectionné).
-Format d’une ligne :
+### Exemples
 
-question (couleur) ; réponse ; image_recto ; image_verso
+**Sans images**
+ma question1 (bleu) ; ma réponse1  
+ma question2 ; ma réponse2  
 
-Exemples :
+**Avec images**
+ma question1 (#FF00FF) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png  
+ma question2 (vert) ; ma réponse2 ; photo1.jpg ; photo2.jpg  
 
-Ma question (rouge) ; Ma réponse ; recto1.png ; verso1.png
+### Couleur du recto
+La couleur est indiquée dans la **colonne 1**, entre parenthèses :
 
-Ma question ; Ma réponse
+- Couleurs acceptées : `bleu`, `rouge`, `rose`, `vert`, `jaune`, `blanc`
+- Ou un code hexadécimal : `#FF00FF`, `#F00`, etc.
+- Si aucune couleur n’est indiquée (ex. `ma question ; ma réponse`), la couleur par défaut du recto est **bleu**.
 
-Ma question (#FF00FF) ; Ma réponse ; recto2.jpg ; verso2.png
+## Images (ZIP optionnel)
+Si tu fournis un fichier ZIP d’images :
+- Les images doivent être au format **PNG** ou **JPG**
+- Le nom indiqué en **colonne 3 (recto)** et **colonne 4 (verso)** doit correspondre **exactement** à un nom de fichier présent dans le ZIP (respect des majuscules/minuscules inclus).
 
-Couleur du recto
+## Utilisation
+1. Ouvre l’application Streamlit
+2. Uploade ton fichier CSV
+3. (Optionnel) Uploade un ZIP d’images
+4. Choisis le format (horizontal/vertical)
+5. Génère et télécharge le PDF
 
-La couleur se met entre parenthèses après la question :
+## Limites connues
+- Nombre maximal de cartes : **9 à 10** (selon le format sélectionné)
+- Les séparateurs attendus dans le CSV sont des `;`
 
-Couleurs autorisées : bleu, rouge, rose, vert, jaune, blanc
 
-Ou un code hexadécimal : #FF00FF ou #F00
 
-Si aucune couleur n’est indiquée, le recto est bleu par défaut.
+## Auteur
+Fabrice Legros fablegros(at)gmail.com
 
-Images (optionnel)
-
-Si vous fournissez un ZIP d’images :
-
-les colonnes 3 (recto) et 4 (verso) peuvent contenir le nom exact d’un fichier image présent dans le ZIP
-
-formats acceptés : PNG et JPG/JPEG
-
-le nom doit correspondre au caractère près (majuscules/minuscules comprises)
-
-Conseil : enregistrez le CSV en UTF-8 et utilisez le point-virgule ; comme séparateur.
-
-Auteur Fabrice Legros fablegros@gmail.com
