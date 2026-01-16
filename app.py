@@ -512,30 +512,31 @@ def build_pdf(cards: List[Dict[str,str]], default_back_color: colors.Color, outp
 # ----------------------------
 st.title("Générateur de cartes recto/verso imprimables multiusages")
 
-st.write("Uploadez votre fichier CSV et un fichier ZIP d'images (facultatif) pour générer des cartes recto/verso sur une feuille A4 pdf.")
-st.text("Le contenu du fichier CSV est constituée au maximum du nombre de cartes sélectionné (10 ou 9) et de lignes du type :")
+st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer des cartes recto/verso sur une feuille A4 en pdf.")
+st.text("Le contenu du fichier CSV est constituée au maximum du nombre de lignes correspondant au nombre de cartes sélectionné (carte au format paysage : 10, carte au format portrait : 9)") 
+st.write(" le format attendu du CSV est le suivant :") 
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
 st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc ou un code hexadécimal comme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le bleu.")
-st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans le ZIP d'images.")
+st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
 # Add Card Layout Selection
 st.subheader("Choisissez la disposition des cartes")
 card_layout = st.selectbox(
-    "Disposition des cartes sur la page A4:",
-    ("Horizontal (2x5 cartes)", "Vertical (3x3 cartes)"),
+    "Format des cartes sur la page A4:",
+    ("Paysage (2x5 cartes)", "Portrait (3x3 cartes)"),
     index=0 # Default to horizontal
 )
 
 # Update global COLS, ROWS, NB_CARTES based on selection
 #global COLS, ROWS, NB_CARTES
-if card_layout == "Horizontal (2x5 cartes)":
+if card_layout == "Paysage (2x5 cartes)":
     COLS, ROWS = 2, 5
     NB_CARTES = 10
-else: # Vertical (3x3 cartes)
+else: # Portrait (3x3 cartes)
     COLS, ROWS = 3, 3
     NB_CARTES = 9
 
