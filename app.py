@@ -29,21 +29,20 @@ ELEMENT_SPACING = 0.8 * cm   # Espace entre les éléments (texte, image) et les
 RECTO_FRAME_WIDTH = 4 * mm   # Largeur du cadre pour l'option recto "cadre"
 
 # Couleurs (recto)
+DEFAULT_BACK_COLOR_NAME = "gris"
+DEFAULT_BACK_COLOR = colors.HexColor("#B3B3B3")
 COLOR_MAP = {
     "bleu": colors.HexColor("#2D6CDF"),
     "rouge": colors.HexColor("#D64541"),
     "rose": colors.HexColor("#E85D9E"),
     "vert": colors.HexColor("#2ECC71"),
     "jaune": colors.HexColor("#F1C40F"),
-    "blanc": colors.white # Ajout du blanc
+    "blanc": colors.white, # Ajout du blanc
+    "gris": DEFAULT_BACK_COLOR
 }
 
 def pick_color_from_filename(filename: str) -> Tuple[str, colors.Color]:
-    low = filename.lower()
-    for key in ["bleu", "rouge", "rose", "vert", "jaune", "blanc"]:
-        if key in low:
-            return key, COLOR_MAP[key]
-    return "bleu", COLOR_MAP["bleu"]
+    return DEFAULT_BACK_COLOR_NAME, DEFAULT_BACK_COLOR
 
 def parse_color_string(color_str: str, default_color: colors.Color) -> colors.Color:
     if not color_str:
@@ -305,7 +304,7 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
-        use_frame_style = recto_color_style == "Cadre 4 mm" and card_specific_color_string
+        use_frame_style = recto_color_style == "Cadre 4 mm"
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
@@ -559,18 +558,18 @@ st.write(" le format attendu du CSV est le suivant :")
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
-st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc ou un code hexadécimal comme #FF00FF ou #F00.")
-st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le bleu.")
-st.write("Quand une couleur est indiquée pour le recto, vous pouvez choisir un remplissage complet ou un cadre de 4 mm via l'option ci-dessous.")
+st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc, gris ou un code hexadécimal comme #FF00FF ou #F00.")
+st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le gris (#B3B3B3).")
+st.write("Vous pouvez choisir un remplissage complet ou un cadre de 4 mm via l'option ci-dessous.")
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
 st.subheader("Disposition des cartes")
 st.info(f"Format portrait (3x3 cartes). Nombre de cartes par page : {NB_CARTES}.")
 
-# Option for recto color style when a color is specified
+# Option for recto color style
 recto_color_style = st.radio(
-    "Style du recto quand une couleur est indiquée :",
+    "Style du recto :",
     ("Remplissage (couleur pleine)", "Cadre 4 mm"),
     index=0
 )
@@ -609,7 +608,7 @@ elif uploaded_csv_file is not None:
     csv_name = uploaded_csv_file.name
 
     color_name, default_back_color = pick_color_from_filename(csv_name)
-    st.info(f"Couleur par défaut détectée (via nom de fichier) : {color_name}")
+    st.info(f"Couleur par défaut : {color_name} (#B3B3B3)")
 
     cards = read_cards_from_csv(csv_content)
     st.info(f"Lignes lues : {len(cards)} (on utilise les {NB_CARTES} premières)")
