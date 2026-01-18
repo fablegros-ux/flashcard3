@@ -49,8 +49,8 @@ Fournir un fichier ZIP d’images :
 1. Ouvrir l’application Streamlit
 2. Téléverser ton fichier CSV
 3. Optionnel : téléverser une archive ZIP contenant les images
-4. Génèrer et télécharger le PDF
-5. imprimer et massicoter ;-)
+4. Générer et télécharger le PDF
+5. Imprimer et massicoter ;-)
 
 ## Limites connues
 - Nombre maximal de cartes : **9**
