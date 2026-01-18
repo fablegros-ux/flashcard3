@@ -550,17 +550,18 @@ def build_pdf(
 # ----------------------------
 # Streamlit Application Logic
 # ----------------------------
-st.title("Générateur de cartes recto/verso imprimables multiusages")
+st.title("Générateur de cartes recto/verso imprimables multi-usages")
 
-st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer des cartes recto/verso sur une feuille A4 en pdf.")
-st.text("Le contenu du fichier CSV est constitué au maximum du nombre de lignes correspondant au nombre de cartes (carte au format portrait : 9)")
+st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer 9 cartes recto/verso sur une feuille A4 en pdf.")
+st.text("Le contenu du fichier CSV est constitué au maximum de 9 lignes correspondant au nombre de cartes")
 st.write(" le format attendu du CSV est le suivant :") 
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
-st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc, gris ou un code hexadécimal comme #FF00FF ou #F00.")
+st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc, gris ou un code hexadécimal de la forme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le gris (#B3B3B3).")
-st.write("Vous pouvez choisir un remplissage complet ou un cadre de 4 mm via l'option ci-dessous.")
+st.write("Vous pouvez choisir un remplissage complet du recto ou un cadre de 4 mm via l'option ci-dessous.")
+st.write("La couleur de fond du verso reste blanche.") 
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
