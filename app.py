@@ -211,6 +211,42 @@ def compute_grid() -> Grid:
     card_h = usable_h / ROWS
     return Grid(page_w, page_h, card_w, card_h, MARGIN, MARGIN)
 
+def card_aspect_ratio() -> float:
+    grid = compute_grid()
+    return grid.card_h / grid.card_w
+
+def build_image_fit_previews(
+    image: Image.Image,
+    target_w: int,
+    target_h: int,
+    background_color: Tuple[int, int, int] = (255, 255, 255),
+) -> Dict[str, Image.Image]:
+    image_rgb = image.convert("RGB")
+
+    contained = image_rgb.copy()
+    contained.thumbnail((target_w, target_h), Image.LANCZOS)
+    contain_canvas = Image.new("RGB", (target_w, target_h), background_color)
+    contain_x = (target_w - contained.width) // 2
+    contain_y = (target_h - contained.height) // 2
+    contain_canvas.paste(contained, (contain_x, contain_y))
+
+    img_w, img_h = image_rgb.size
+    scale = max(target_w / img_w, target_h / img_h)
+    cover_w = int(img_w * scale)
+    cover_h = int(img_h * scale)
+    cover = image_rgb.resize((cover_w, cover_h), Image.LANCZOS)
+    crop_x = max((cover_w - target_w) // 2, 0)
+    crop_y = max((cover_h - target_h) // 2, 0)
+    cropped = cover.crop((crop_x, crop_y, crop_x + target_w, crop_y + target_h))
+
+    stretched = image_rgb.resize((target_w, target_h), Image.LANCZOS)
+
+    return {
+        "Recadrage (crop)": cropped,
+        "Contain + marges": contain_canvas,
+        "Déformation (stretch)": stretched,
+    }
+
 def card_xy(grid: Grid, col: int, row: int) -> Tuple[float,float]:
     # row 0 en haut
     x = grid.x0 + col*(grid.card_w + GAP)
@@ -304,7 +340,9 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
-        use_frame_style = recto_color_style == "Cadre 4 mm"
+        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
+        recto_image_fill_mode = card_recto_image_filename.lower().startswith("pc_")
+        use_frame_style = recto_color_style == "Cadre 4 mm" or recto_image_fill_mode
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
@@ -341,7 +379,6 @@ def build_pdf(
             )
 
         question_text_for_card = cards_to_process[i].get("question", "").strip()
-        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
 
         current_recto_pil_image = None
         if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
@@ -370,7 +407,28 @@ def build_pdf(
                 image_to_draw_path = None
 
 
-        if image_to_draw_path:
+        if image_to_draw_path and recto_image_fill_mode:
+            try:
+                with Image.open(image_to_draw_path) as pil_img:
+                    original_w, original_h = pil_img.size
+                if original_h == 0:
+                    raise ValueError("Image has zero height")
+                img_h = content_w
+                img_w = (original_w / original_h) * img_h
+                img_x = content_x + (content_w - img_w) / 2
+                img_y = content_y + (content_h - img_h) / 2
+                c.drawImage(
+                    image_to_draw_path,
+                    img_x,
+                    img_y,
+                    width=img_w,
+                    height=img_h,
+                    preserveAspectRatio=False,
+                )
+            except Exception as e:
+                st.error(f"Erreur lors du dessin de l'image (mode pc_) : {e}")
+                draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
+        elif image_to_draw_path:
             if not question_text_for_card:
                 # No text, image takes up 90% of card width, centered
                 try:
@@ -599,6 +657,28 @@ if uploaded_recto_images_zip:
         st.success(f"{len(recto_images_dict)} images chargées depuis le fichier ZIP.")
     else:
         st.warning("Aucune image valide trouvée dans le fichier ZIP.")
+
+st.subheader("Comparatif d'adaptation d'une illustration")
+st.write(
+    "Uploadez une image pour comparer trois modes d'adaptation au format de carte : "
+    "recadrage, contain avec marges et déformation."
+)
+comparison_image_file = st.file_uploader(
+    "Uploader une image pour le comparatif (PNG/JPG)",
+    type=["png", "jpg", "jpeg"],
+    key="comparison_image",
+)
+
+if comparison_image_file:
+    comparison_image = Image.open(comparison_image_file)
+    target_width = 420
+    target_height = int(target_width * card_aspect_ratio())
+    previews = build_image_fit_previews(comparison_image, target_width, target_height)
+    columns = st.columns(len(previews))
+    for column, (label, preview_image) in zip(columns, previews.items()):
+        with column:
+            st.markdown(f"**{label}**")
+            st.image(preview_image, use_column_width=True)
 
 
 if uploaded_csv_file is None:
