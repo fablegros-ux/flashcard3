@@ -53,6 +53,7 @@ Si tu fournis un fichier ZIP d’images :
 ## Limites connues
 - Nombre maximal de cartes : **9**
 - Les séparateurs attendus dans le CSV sont des `;`
+- Le texte doit contenir au maximun 50 signes si une illustration est associée.
 
 
 
