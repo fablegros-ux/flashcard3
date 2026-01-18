@@ -22,38 +22,40 @@ Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des poin
 ### Exemples
 
 **Sans images**
-ma question1 (bleu) ; ma réponse1
-; mon texte_verso et mon recto vide
-ma question2 ; ma réponse2  
+1. ma question1 (bleu) ; ma réponse1
+2. ; mon texte_verso et mon recto vide
+3. ma question2 ; ma réponse2  
 
 **Avec images**
-ma question1 (#FF00FF) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png  
-ma question2 (vert) ; ma réponse2 ; photo1.jpg ; photo2.jpg  
+1. ma question1 (#FF00FF) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png  
+2. ma question2 (vert);; photo_recto.jpg ; photo_photo_verso.jpg
+3. ;;; mon_illustration_verso.png
+     
 
 ### Couleur du recto
-La couleur est indiquée dans la **colonne 1**, entre parenthèses :
+La couleur du reco est indiquée dans la **colonne 1**, entre parenthèses :
 
 - Couleurs acceptées : `bleu`, `rouge`, `rose`, `vert`, `jaune`, `blanc`
-- Ou un code hexadécimal : `#FF00FF`, `#F00`, etc.
+- Ou un code hexadécimal : `#FF00FF`, `#F00`, etc. (cf. https://htmlcolorcodes.com/fr/ pour définir la couleur désirée)
 - Si aucune couleur n’est indiquée (ex. `ma question ; ma réponse`), la couleur par défaut du recto est **gris**.
 
 ## Images (ZIP optionnel)
-Si tu fournis un fichier ZIP d’images :
+Fournir un fichier ZIP d’images :
 - Les images doivent être au format **PNG** ou **JPG**
 - la transparence du format **PNG** est pris en charge
 - Le nom indiqué en **colonne 3 (recto)** et **colonne 4 (verso)** doit correspondre **exactement** à un nom de fichier présent dans le ZIP (respect des majuscules/minuscules inclus).
 
 ## Utilisation
-1. Ouvre l’application Streamlit
-2. Uploade ton fichier CSV
-3. (Optionnel) téléverse une archive ZIP contenant les images
-4. Génère et télécharge le PDF
-5. imprime et massicote ;-)
+1. Ouvrir l’application Streamlit
+2. Téléverser ton fichier CSV
+3. Optionnel : téléverser une archive ZIP contenant les images
+4. Générer et télécharger le PDF
+5. Imprimer et massicoter ;-)
 
 ## Limites connues
 - Nombre maximal de cartes : **9**
 - Les séparateurs attendus dans le CSV sont des `;`
-- Le texte doit contenir au maximun 50 signes si une illustration est associée.
+- Le texte ne doit pas contenir plus de 50 signes si une illustration est associée.
 
 
 
