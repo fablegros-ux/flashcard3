@@ -7,7 +7,7 @@ Application Streamlit permettant de générer des cartes rapidement **recto/vers
 - Import d’un fichier **CSV** (contenu des cartes)
 - Import optionnel d’un **ZIP d’images** (PNG/JPG) pour illustrer recto/verso
 - Génération d’un PDF A4 avec cartes **recto/verso** prêtes à imprimer
-- Couleur du **recto** par carte : nom de couleur ou code hexadécimal
+- Couleur du **recto** définie par carte : nom de couleur prédéfinie ou code hexadécimal
 
 ## Format attendu du CSV
 
@@ -22,7 +22,8 @@ Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des poin
 ### Exemples
 
 **Sans images**
-ma question1 (bleu) ; ma réponse1  
+ma question1 (bleu) ; ma réponse1
+; mon texte_verso et mon recto vide
 ma question2 ; ma réponse2  
 
 **Avec images**
@@ -34,7 +35,7 @@ La couleur est indiquée dans la **colonne 1**, entre parenthèses :
 
 - Couleurs acceptées : `bleu`, `rouge`, `rose`, `vert`, `jaune`, `blanc`
 - Ou un code hexadécimal : `#FF00FF`, `#F00`, etc.
-- Si aucune couleur n’est indiquée (ex. `ma question ; ma réponse`), la couleur par défaut du recto est **bleu**.
+- Si aucune couleur n’est indiquée (ex. `ma question ; ma réponse`), la couleur par défaut du recto est **gris**.
 
 ## Images (ZIP optionnel)
 Si tu fournis un fichier ZIP d’images :
@@ -52,6 +53,7 @@ Si tu fournis un fichier ZIP d’images :
 ## Limites connues
 - Nombre maximal de cartes : **9**
 - Les séparateurs attendus dans le CSV sont des `;`
+- Le texte doit contenir au maximun 50 signes si une illustration est associée.
 
 
 
