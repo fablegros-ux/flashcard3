@@ -1,4 +1,3 @@
-%%writefile app.py
 # cell_id: 9961351c - Mis à jour le 2024-05-18 17:12 (Paris)
 import os, re, csv, io, zipfile
 import tempfile
