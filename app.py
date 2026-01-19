@@ -342,6 +342,9 @@ def build_pdf(
 
         card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
         recto_image_fill_mode = card_recto_image_filename.lower().startswith("pc_")
+        recto_image_candidates = [card_recto_image_filename]
+        if recto_image_fill_mode:
+            recto_image_candidates.insert(0, card_recto_image_filename[3:].strip())
         use_frame_style = recto_color_style == "Cadre 4 mm" or recto_image_fill_mode
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
@@ -381,8 +384,11 @@ def build_pdf(
         question_text_for_card = cards_to_process[i].get("question", "").strip()
 
         current_recto_pil_image = None
-        if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
-             current_recto_pil_image = uploaded_recto_images[card_recto_image_filename]
+        if uploaded_recto_images:
+            for candidate in recto_image_candidates:
+                if candidate and candidate in uploaded_recto_images:
+                    current_recto_pil_image = uploaded_recto_images[candidate]
+                    break
 
         image_to_draw_path = None
         if current_recto_pil_image:
@@ -409,6 +415,14 @@ def build_pdf(
 
         if image_to_draw_path and recto_image_fill_mode:
             try:
+                rotated_image_path = None
+                with Image.open(image_to_draw_path) as pil_img:
+                    rotated_img = pil_img.rotate(90, expand=True)
+                    original_w, original_h = rotated_img.size
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_rotated_file:
+                        rotated_image_path = temp_rotated_file.name
+                        rotated_img.save(temp_rotated_file, format="PNG")
+                temp_image_files_to_clean.append(rotated_image_path)
                 with Image.open(image_to_draw_path) as pil_img:
                     original_w, original_h = pil_img.size
                 if original_h == 0:
@@ -418,6 +432,7 @@ def build_pdf(
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + (content_h - img_h) / 2
                 c.drawImage(
+                    rotated_image_path,
                     image_to_draw_path,
                     img_x,
                     img_y,
