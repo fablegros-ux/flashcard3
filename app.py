@@ -431,6 +431,7 @@ def build_pdf(
                 img_w = (original_w / original_h) * img_h
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + (content_h - img_h) / 2
+                c.drawImage(ImageReader(rotated_image_path), img_x, img_y, img_w, img_h)
                 c.drawImage(
                     rotated_image_path,
                     image_to_draw_path,
