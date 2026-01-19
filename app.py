@@ -315,7 +315,19 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
+        question_text_for_card = cards_to_process[i].get("question", "").strip()
+        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
+
         use_frame_style = recto_color_style == "Cadre 4 mm"
+        use_pc_recto_mode = bool(
+            not question_text_for_card
+            and card_recto_image_filename
+            and card_recto_image_filename.lower().startswith("pc_")
+        )
+
+        if use_pc_recto_mode:
+            use_frame_style = True
+
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
@@ -351,21 +363,19 @@ def build_pdf(
                 fill=0
             )
 
-        question_text_for_card = cards_to_process[i].get("question", "").strip()
-        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
-
         current_recto_pil_image = None
         if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
              current_recto_pil_image = uploaded_recto_images[card_recto_image_filename]
 
         image_to_draw_path = None
 
-        # Special handling for 'pc_' prefixed images (recto)
-        if card_recto_image_filename and card_recto_image_filename.lower().startswith('pc_'):
-            question_text_for_card = "" # Suppress text for these cards
+        # Special handling for 'pc_' prefixed images (recto, no text)
+        if use_pc_recto_mode:
             if current_recto_pil_image:
                 try:
-                    rotated_img = current_recto_pil_image.rotate(-90, expand=True)
+                    rotated_img = current_recto_pil_image
+                    if current_recto_pil_image.size[1] < current_recto_pil_image.size[0]:
+                        rotated_img = current_recto_pil_image.rotate(-90, expand=True)
 
                     r, g, b = recto_image_background_color.red, recto_image_background_color.green, recto_image_background_color.blue
                     bg_color_tuple = (int(r * 255), int(g * 255), int(b * 255))
@@ -379,20 +389,12 @@ def build_pdf(
                     temp_image_files_to_clean.append(rotated_image_path)
 
                     rotated_original_w, rotated_original_h = rotated_img.size
-
-                    # Calculate drawing dimensions to fit rotated image within content area
-                    # Prioritize fitting the rotated image's height to the card's content width
-                    draw_h = content_w
-                    if rotated_original_h == 0:
-                        raise ValueError("Rotated image has zero height, cannot calculate aspect ratio.")
-                    draw_w = (rotated_original_w / rotated_original_h) * draw_h
-
-                    # If calculated width exceeds the card's content height, adjust to fit height instead
-                    if draw_w > content_h:
-                        draw_w = content_h
-                        if rotated_original_w == 0:
-                            raise ValueError("Rotated image has zero width, cannot calculate aspect ratio.")
-                        draw_h = (rotated_original_h / rotated_original_w) * draw_w
+                    short_side = min(rotated_original_w, rotated_original_h)
+                    if short_side == 0:
+                        raise ValueError("Rotated image has zero width or height, cannot calculate aspect ratio.")
+                    scale = content_w / short_side
+                    draw_w = rotated_original_w * scale
+                    draw_h = rotated_original_h * scale
 
                     # Center the image
                     img_x = content_x + (content_w - draw_w) / 2
@@ -684,14 +686,23 @@ st.info(f"Format portrait (3x3 cartes). Nombre de cartes par page : {NB_CARTES}.
 recto_color_style = st.radio(
     "Style du recto :",
     ("Remplissage (couleur pleine)", "Cadre 4 mm"),
-    index=0
+    index=0,
+    key="recto_color_style"
 )
 
 # CSV Upload
-uploaded_csv_file = st.file_uploader("Uploader le fichier CSV", type=["csv"])
+uploaded_csv_file = st.file_uploader(
+    "Uploader le fichier CSV",
+    type=["csv"],
+    key="csv_uploader"
+)
 
 # Image Upload for Recto (multiple images via ZIP)
-uploaded_recto_images_zip = st.file_uploader("Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos", type=["zip"])
+uploaded_recto_images_zip = st.file_uploader(
+    "Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos",
+    type=["zip"],
+    key="images_zip_uploader"
+)
 
 recto_images_dict = {}
 if uploaded_recto_images_zip:
