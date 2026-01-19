@@ -658,29 +658,6 @@ if uploaded_recto_images_zip:
     else:
         st.warning("Aucune image valide trouvée dans le fichier ZIP.")
 
-st.subheader("Comparatif d'adaptation d'une illustration")
-st.write(
-    "Uploadez une image pour comparer trois modes d'adaptation au format de carte : "
-    "recadrage, contain avec marges et déformation."
-)
-comparison_image_file = st.file_uploader(
-    "Uploader une image pour le comparatif (PNG/JPG)",
-    type=["png", "jpg", "jpeg"],
-    key="comparison_image",
-)
-
-if comparison_image_file:
-    comparison_image = Image.open(comparison_image_file)
-    target_width = 420
-    target_height = int(target_width * card_aspect_ratio())
-    previews = build_image_fit_previews(comparison_image, target_width, target_height)
-    columns = st.columns(len(previews))
-    for column, (label, preview_image) in zip(columns, previews.items()):
-        with column:
-            st.markdown(f"**{label}**")
-            st.image(preview_image, use_column_width=True)
-
-
 if uploaded_csv_file is None:
     st.warning("Veuillez uploader un fichier CSV pour commencer.")
 elif uploaded_csv_file is not None:
