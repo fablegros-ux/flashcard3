@@ -272,6 +272,16 @@ def draw_cut_marks(c: canvas.Canvas, grid: Grid):
         c.line(0, y_bottom_card, page_w, y_bottom_card) # Bottom edge of card, extends full page
         c.line(0, y_top_card, page_w, y_top_card) # Top edge of card, extends full page
 
+def compute_fitted_image_size(image_path: str, max_w: float, max_h: float) -> Tuple[float, float]:
+    with Image.open(image_path) as pil_img:
+        original_w, original_h = pil_img.size
+
+    if original_w == 0 or original_h == 0:
+        raise ValueError("Image has zero width or height")
+
+    scale = min(max_w / original_w, max_h / original_h)
+    return original_w * scale, original_h * scale
+
 def build_pdf(
     cards: List[Dict[str,str]],
     default_back_color: colors.Color,
@@ -458,20 +468,20 @@ def build_pdf(
                 # Text is present, use original image/text layout with safe sizing
                 available_h = max(content_h - (3 * ELEMENT_SPACING), 0)
                 min_text_box_h = 1.0 * cm
-                if available_h <= min_text_box_h:
-                    img_h = max(available_h * 0.4, 0)
-                else:
-                    img_h = min(content_h / 2, max(available_h - min_text_box_h, 0))
+                max_img_h = max(available_h - min_text_box_h, 0)
+                max_img_w = content_w
 
-                # Text is present, use original image/text layout
-                img_h = content_h / 2
-                img_w = img_h
+                try:
+                    img_w, img_h = compute_fitted_image_size(image_to_draw_path, max_img_w, max_img_h)
+                except Exception as e:
+                    st.error(f"Erreur lors du calcul des dimensions de l'image (avec texte) : {e}")
+                    draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
+                    continue
 
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + ELEMENT_SPACING
 
-                text_box_h = max(available_h - img_h, 1)
-                text_box_h = content_h - (3 * ELEMENT_SPACING + img_h)
+                text_box_h = max(content_h - (3 * ELEMENT_SPACING + img_h), 1)
 
                 text_box_x = content_x
                 text_box_y = img_y + img_h + ELEMENT_SPACING
@@ -605,13 +615,22 @@ def build_pdf(
                     draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, "", style_verso)
             else:
                 # Text is present, use original image/text layout
-                img_h_verso = grid.card_h / 2
-                img_w_verso = img_h_verso
+                available_h_verso = max(grid.card_h - (3 * ELEMENT_SPACING), 0)
+                min_text_box_h_verso = 1.0 * cm
+                max_img_h_verso = max(available_h_verso - min_text_box_h_verso, 0)
+                max_img_w_verso = grid.card_w
+
+                try:
+                    img_w_verso, img_h_verso = compute_fitted_image_size(image_to_draw_verso_path, max_img_w_verso, max_img_h_verso)
+                except Exception as e:
+                    st.error(f"Erreur lors du calcul des dimensions de l'image de verso (avec texte) : {e}")
+                    draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, verso_text_for_card, style_verso)
+                    continue
 
                 img_x_verso = x + (grid.card_w - img_w_verso) / 2
                 img_y_verso = y + ELEMENT_SPACING
 
-                text_box_h_verso = grid.card_h - (3 * ELEMENT_SPACING + img_h_verso)
+                text_box_h_verso = max(grid.card_h - (3 * ELEMENT_SPACING + img_h_verso), 1)
 
                 text_box_x_verso = x
                 text_box_y_verso = img_y_verso + img_h_verso + ELEMENT_SPACING
