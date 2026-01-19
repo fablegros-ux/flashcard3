@@ -79,17 +79,17 @@ def is_dark(c: colors.Color) -> bool:
 
 def sniff_dialect(data: str) -> csv.Dialect:
     # Priority to semicolon if it seems like the primary delimiter
-    if ';' in data:
+    if ";" in data:
         try:
             # Check if semicolon works as a reasonable delimiter (e.g., more than one field)
             # and if it appears consistently enough to be the primary delimiter
             f_test = io.StringIO(data)
-            test_reader = csv.reader(f_test, delimiter=';')
+            test_reader = csv.reader(f_test, delimiter=";")
             # Look at first few lines to guess consistency
             sample_lines = data.splitlines()[:5]
-            if any(len(row) > 1 for row in csv.reader(io.StringIO(sample_lines[0]), delimiter=';')) or all(';' in line for line in sample_lines if line.strip()):
+            if any(len(row) > 1 for row in csv.reader(io.StringIO(sample_lines[0]), delimiter=";")) or all(";" in line for line in sample_lines if line.strip()):
                 class SemicolonDialect(csv.excel):
-                    delimiter = ';'
+                    delimiter = ";"
                 return SemicolonDialect()
         except Exception:
             pass # Fall through to other options
@@ -204,6 +204,7 @@ class Grid:
 
 def compute_grid() -> Grid:
     # COLS, ROWS, NB_CARTES are now global variables, updated by Streamlit UI
+    global COLS, ROWS, NB_CARTES
     page_w, page_h = A4
     usable_w = page_w - 2*MARGIN - (COLS-1)*GAP
     usable_h = page_h - 2*MARGIN - (ROWS-1)*GAP
@@ -304,9 +305,7 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
-        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
-        recto_image_fill_mode = card_recto_image_filename.lower().startswith("pc_")
-        use_frame_style = recto_color_style == "Cadre 4 mm" or recto_image_fill_mode
+        use_frame_style = recto_color_style == "Cadre 4 mm"
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
@@ -320,7 +319,7 @@ def build_pdf(
             content_w = grid.card_w - (2 * RECTO_FRAME_WIDTH)
             content_h = grid.card_h - (2 * RECTO_FRAME_WIDTH)
 
-        # Recto text style (adapted to background via current_back_color)
+        # Recto text style: color adapted to background (depends on current_back_color)
         recto_text_color = colors.black if use_frame_style else (colors.white if is_dark(current_back_color) else colors.black)
         style_recto = ParagraphStyle(
             "Recto", fontName=base_font, fontSize=16, leading=18,
@@ -343,12 +342,59 @@ def build_pdf(
             )
 
         question_text_for_card = cards_to_process[i].get("question", "").strip()
+        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
 
         current_recto_pil_image = None
         if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
              current_recto_pil_image = uploaded_recto_images[card_recto_image_filename]
 
         image_to_draw_path = None
+
+        # Special handling for 'pc_' prefixed images (recto)
+        if card_recto_image_filename and card_recto_image_filename.lower().startswith('pc_'):
+            question_text_for_card = "" # Suppress text for these cards
+            if current_recto_pil_image:
+                try:
+                    rotated_img = current_recto_pil_image.rotate(-90, expand=True)
+
+                    r, g, b = recto_image_background_color.red, recto_image_background_color.green, recto_image_background_color.blue
+                    bg_color_tuple = (int(r * 255), int(g * 255), int(b * 255))
+
+                    alpha_composite_img = Image.new('RGB', rotated_img.size, bg_color_tuple)
+                    alpha_composite_img.paste(rotated_img, (0, 0), rotated_img)
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_png_file:
+                        rotated_image_path = temp_png_file.name
+                        alpha_composite_img.save(temp_png_file, format='PNG')
+                    temp_image_files_to_clean.append(rotated_image_path)
+
+                    rotated_original_w, rotated_original_h = rotated_img.size
+
+                    # Calculate drawing dimensions to fit rotated image within content area
+                    # Prioritize fitting the rotated image's height to the card's content width
+                    draw_h = content_w
+                    if rotated_original_h == 0:
+                        raise ValueError("Rotated image has zero height, cannot calculate aspect ratio.")
+                    draw_w = (rotated_original_w / rotated_original_h) * draw_h
+
+                    # If calculated width exceeds the card's content height, adjust to fit height instead
+                    if draw_w > content_h:
+                        draw_w = content_h
+                        if rotated_original_w == 0:
+                            raise ValueError("Rotated image has zero width, cannot calculate aspect ratio.")
+                        draw_h = (rotated_original_h / rotated_original_w) * draw_w
+
+                    # Center the image
+                    img_x = content_x + (content_w - draw_w) / 2
+                    img_y = content_y + (content_h - draw_h) / 2
+
+                    c.drawImage(rotated_image_path, img_x, img_y,
+                                width=draw_w, height=draw_h, preserveAspectRatio=True)
+                except Exception as e:
+                    st.error(f"Erreur lors du traitement de l'image 'pc_' (recto) pour la carte {i}: {e}")
+                continue # Skip default image/text drawing for this card
+
+
         if current_recto_pil_image:
             try:
                 r = recto_image_background_color.red
@@ -371,26 +417,7 @@ def build_pdf(
                 image_to_draw_path = None
 
 
-        if image_to_draw_path and recto_image_fill_mode:
-            try:
-                with Image.open(image_to_draw_path) as pil_img:
-                    rotated_img = pil_img.rotate(90, expand=True)
-                original_w, original_h = rotated_img.size
-                if original_h == 0 or original_w == 0:
-                    raise ValueError("Image has zero size")
-                img_h = content_w
-                scale = img_h / original_h
-                img_w = original_w * scale
-                if img_w > content_h:
-                    img_w = content_h
-                    scale = img_w / original_w
-                    img_h = original_h * scale
-                img_x = content_x + (content_w - img_w) / 2
-                img_y = content_y + (content_h - img_h) / 2
-                c.drawImage(ImageReader(rotated_img), img_x, img_y, img_w, img_h)
-            except Exception as e:
-                st.error(f"Erreur lors du dessin de l'image (mode pc_) : {e}")
-        elif image_to_draw_path:
+        if image_to_draw_path:
             if not question_text_for_card:
                 # No text, image takes up 90% of card width, centered
                 try:
@@ -481,6 +508,53 @@ def build_pdf(
             current_verso_pil_image = uploaded_recto_images[card_verso_image_filename] # Assuming uploaded_recto_images can also contain verso images
 
         image_to_draw_verso_path = None
+
+        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
+
+        # Special handling for 'pc_' prefixed images (verso)
+        if card_verso_image_filename and card_verso_image_filename.lower().startswith('pc_'):
+            verso_text_for_card = "" # Suppress text for these cards
+            if current_verso_pil_image:
+                try:
+                    rotated_img_verso = current_verso_pil_image.rotate(-90, expand=True)
+
+                    bg_color_tuple_verso = (255, 255, 255) # White background for verso
+
+                    alpha_composite_img_verso = Image.new('RGB', rotated_img_verso.size, bg_color_tuple_verso)
+                    alpha_composite_img_verso.paste(rotated_img_verso, (0, 0), rotated_img_verso)
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_png_file_verso:
+                        rotated_image_path_verso = temp_png_file_verso.name
+                        alpha_composite_img_verso.save(temp_png_file_verso, format='PNG')
+                    temp_image_files_to_clean.append(rotated_image_path_verso)
+
+                    rotated_original_w_verso, rotated_original_h_verso = rotated_img_verso.size
+
+                    # Calculate drawing dimensions to fit rotated image within card dimensions (x,y,grid.card_w,grid.card_h)
+                    # Prioritize fitting the rotated image's height to the card's width
+                    draw_h_verso = grid.card_w
+                    if rotated_original_h_verso == 0:
+                        raise ValueError("Rotated verso image has zero height, cannot calculate aspect ratio.")
+                    draw_w_verso = (rotated_original_w_verso / rotated_original_h_verso) * draw_h_verso
+
+                    # If calculated width exceeds the card's height, adjust to fit height instead
+                    if draw_w_verso > grid.card_h:
+                        draw_w_verso = grid.card_h
+                        if rotated_original_w_verso == 0:
+                            raise ValueError("Rotated verso image has zero width, cannot calculate aspect ratio.")
+                        draw_h_verso = (rotated_original_h_verso / rotated_original_w_verso) * draw_w_verso
+
+                    # Center the image
+                    img_x_verso = x + (grid.card_w - draw_w_verso) / 2
+                    img_y_verso = y + (grid.card_h - draw_h_verso) / 2
+
+                    c.drawImage(rotated_image_path_verso, img_x_verso, img_y_verso,
+                                width=draw_w_verso, height=draw_h_verso, preserveAspectRatio=True)
+                except Exception as e:
+                    st.error(f"Erreur lors du traitement de l'image 'pc_' (verso) pour la carte {i}: {e}")
+                continue # Skip default image/text drawing for this card
+
+
         if current_verso_pil_image:
             try:
                 # For verso, assume white background for compositing if original is RGBA
@@ -498,7 +572,6 @@ def build_pdf(
                 st.error(f"Erreur lors du compositing de l'image de verso pour la carte {i}: {e}")
                 image_to_draw_verso_path = None
 
-        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
 
         if image_to_draw_verso_path:
             if not verso_text_for_card:
@@ -574,14 +647,14 @@ st.title("Générateur de cartes recto/verso imprimables multi-usages")
 
 st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer 9 cartes recto/verso sur une feuille A4 en pdf.")
 st.text("Le contenu du fichier CSV est constitué au maximum de 9 lignes correspondant au nombre de cartes")
-st.write(" le format attendu du CSV est le suivant :") 
+st.write(" le format attendu du CSV est le suivant :")
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
 st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc, gris ou un code hexadécimal de la forme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le gris (#B3B3B3).")
 st.write("Vous pouvez choisir un remplissage complet du recto ou un cadre de 4 mm via l'option ci-dessous.")
-st.write("La couleur de fond du verso reste blanche.") 
+st.write("La couleur de fond du verso reste blanche.")
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
