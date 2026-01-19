@@ -1,3 +1,4 @@
+%%writefile app.py
 # cell_id: 9961351c - Mis à jour le 2024-05-18 17:12 (Paris)
 import os, re, csv, io, zipfile
 import tempfile
@@ -79,17 +80,17 @@ def is_dark(c: colors.Color) -> bool:
 
 def sniff_dialect(data: str) -> csv.Dialect:
     # Priority to semicolon if it seems like the primary delimiter
-    if ";" in data:
+    if ';' in data:
         try:
             # Check if semicolon works as a reasonable delimiter (e.g., more than one field)
             # and if it appears consistently enough to be the primary delimiter
             f_test = io.StringIO(data)
-            test_reader = csv.reader(f_test, delimiter=";")
+            test_reader = csv.reader(f_test, delimiter=';')
             # Look at first few lines to guess consistency
             sample_lines = data.splitlines()[:5]
-            if any(len(row) > 1 for row in csv.reader(io.StringIO(sample_lines[0]), delimiter=";")) or all(";" in line for line in sample_lines if line.strip()):
+            if any(len(row) > 1 for row in csv.reader(io.StringIO(sample_lines[0]), delimiter=';')) or all(';' in line for line in sample_lines if line.strip()):
                 class SemicolonDialect(csv.excel):
-                    delimiter = ";"
+                    delimiter = ';'
                 return SemicolonDialect()
         except Exception:
             pass # Fall through to other options
