@@ -1322,7 +1322,8 @@ st.info(f"Format portrait (3x3 cartes). Nombre de cartes par page : {NB_CARTES}.
 recto_color_style = st.radio(
     "Style du recto :",
     ("Remplissage (couleur pleine)", "Cadre 4 mm"),
-    index=0
+    index=0,
+    key="recto_color_style"
 )
 
 # CSV Upload
