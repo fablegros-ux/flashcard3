@@ -211,6 +211,42 @@ def compute_grid() -> Grid:
     card_h = usable_h / ROWS
     return Grid(page_w, page_h, card_w, card_h, MARGIN, MARGIN)
 
+def card_aspect_ratio() -> float:
+    grid = compute_grid()
+    return grid.card_h / grid.card_w
+
+def build_image_fit_previews(
+    image: Image.Image,
+    target_w: int,
+    target_h: int,
+    background_color: Tuple[int, int, int] = (255, 255, 255),
+) -> Dict[str, Image.Image]:
+    image_rgb = image.convert("RGB")
+
+    contained = image_rgb.copy()
+    contained.thumbnail((target_w, target_h), Image.LANCZOS)
+    contain_canvas = Image.new("RGB", (target_w, target_h), background_color)
+    contain_x = (target_w - contained.width) // 2
+    contain_y = (target_h - contained.height) // 2
+    contain_canvas.paste(contained, (contain_x, contain_y))
+
+    img_w, img_h = image_rgb.size
+    scale = max(target_w / img_w, target_h / img_h)
+    cover_w = int(img_w * scale)
+    cover_h = int(img_h * scale)
+    cover = image_rgb.resize((cover_w, cover_h), Image.LANCZOS)
+    crop_x = max((cover_w - target_w) // 2, 0)
+    crop_y = max((cover_h - target_h) // 2, 0)
+    cropped = cover.crop((crop_x, crop_y, crop_x + target_w, crop_y + target_h))
+
+    stretched = image_rgb.resize((target_w, target_h), Image.LANCZOS)
+
+    return {
+        "Recadrage (crop)": cropped,
+        "Contain + marges": contain_canvas,
+        "Déformation (stretch)": stretched,
+    }
+
 def card_xy(grid: Grid, col: int, row: int) -> Tuple[float,float]:
     # row 0 en haut
     x = grid.x0 + col*(grid.card_w + GAP)
