@@ -304,7 +304,9 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
-        use_frame_style = recto_color_style == "Cadre 4 mm"
+        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
+        recto_image_fill_mode = card_recto_image_filename.lower().startswith("pc_")
+        use_frame_style = recto_color_style == "Cadre 4 mm" or recto_image_fill_mode
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
@@ -341,7 +343,6 @@ def build_pdf(
             )
 
         question_text_for_card = cards_to_process[i].get("question", "").strip()
-        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
 
         current_recto_pil_image = None
         if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
@@ -370,7 +371,26 @@ def build_pdf(
                 image_to_draw_path = None
 
 
-        if image_to_draw_path:
+        if image_to_draw_path and recto_image_fill_mode:
+            try:
+                with Image.open(image_to_draw_path) as pil_img:
+                    rotated_img = pil_img.rotate(90, expand=True)
+                original_w, original_h = rotated_img.size
+                if original_h == 0 or original_w == 0:
+                    raise ValueError("Image has zero size")
+                img_h = content_w
+                scale = img_h / original_h
+                img_w = original_w * scale
+                if img_w > content_h:
+                    img_w = content_h
+                    scale = img_w / original_w
+                    img_h = original_h * scale
+                img_x = content_x + (content_w - img_w) / 2
+                img_y = content_y + (content_h - img_h) / 2
+                c.drawImage(ImageReader(rotated_img), img_x, img_y, img_w, img_h)
+            except Exception as e:
+                st.error(f"Erreur lors du dessin de l'image (mode pc_) : {e}")
+        elif image_to_draw_path:
             if not question_text_for_card:
                 # No text, image takes up 90% of card width, centered
                 try:
