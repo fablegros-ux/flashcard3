@@ -211,6 +211,42 @@ def compute_grid() -> Grid:
     card_h = usable_h / ROWS
     return Grid(page_w, page_h, card_w, card_h, MARGIN, MARGIN)
 
+def card_aspect_ratio() -> float:
+    grid = compute_grid()
+    return grid.card_h / grid.card_w
+
+def build_image_fit_previews(
+    image: Image.Image,
+    target_w: int,
+    target_h: int,
+    background_color: Tuple[int, int, int] = (255, 255, 255),
+) -> Dict[str, Image.Image]:
+    image_rgb = image.convert("RGB")
+
+    contained = image_rgb.copy()
+    contained.thumbnail((target_w, target_h), Image.LANCZOS)
+    contain_canvas = Image.new("RGB", (target_w, target_h), background_color)
+    contain_x = (target_w - contained.width) // 2
+    contain_y = (target_h - contained.height) // 2
+    contain_canvas.paste(contained, (contain_x, contain_y))
+
+    img_w, img_h = image_rgb.size
+    scale = max(target_w / img_w, target_h / img_h)
+    cover_w = int(img_w * scale)
+    cover_h = int(img_h * scale)
+    cover = image_rgb.resize((cover_w, cover_h), Image.LANCZOS)
+    crop_x = max((cover_w - target_w) // 2, 0)
+    crop_y = max((cover_h - target_h) // 2, 0)
+    cropped = cover.crop((crop_x, crop_y, crop_x + target_w, crop_y + target_h))
+
+    stretched = image_rgb.resize((target_w, target_h), Image.LANCZOS)
+
+    return {
+        "Recadrage (crop)": cropped,
+        "Contain + marges": contain_canvas,
+        "Déformation (stretch)": stretched,
+    }
+
 def card_xy(grid: Grid, col: int, row: int) -> Tuple[float,float]:
     # row 0 en haut
     x = grid.x0 + col*(grid.card_w + GAP)
@@ -373,14 +409,8 @@ def build_pdf(
 
         if image_to_draw_path and recto_image_fill_mode:
             try:
-                rotated_image_path = None
                 with Image.open(image_to_draw_path) as pil_img:
-                    rotated_img = pil_img.rotate(90, expand=True)
-                    original_w, original_h = rotated_img.size
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_rotated_file:
-                        rotated_image_path = temp_rotated_file.name
-                        rotated_img.save(temp_rotated_file, format="PNG")
-                temp_image_files_to_clean.append(rotated_image_path)
+                    original_w, original_h = pil_img.size
                 if original_h == 0:
                     raise ValueError("Image has zero height")
                 img_h = content_w
@@ -388,7 +418,7 @@ def build_pdf(
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + (content_h - img_h) / 2
                 c.drawImage(
-                    rotated_image_path,
+                    image_to_draw_path,
                     img_x,
                     img_y,
                     width=img_w,
