@@ -304,7 +304,9 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
-        use_frame_style = recto_color_style == "Cadre 4 mm"
+        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
+        recto_image_fill_mode = card_recto_image_filename.lower().startswith("pc_")
+        use_frame_style = recto_color_style == "Cadre 4 mm" or recto_image_fill_mode
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
@@ -341,7 +343,6 @@ def build_pdf(
             )
 
         question_text_for_card = cards_to_process[i].get("question", "").strip()
-        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
 
         current_recto_pil_image = None
         if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
@@ -370,7 +371,28 @@ def build_pdf(
                 image_to_draw_path = None
 
 
-        if image_to_draw_path:
+        if image_to_draw_path and recto_image_fill_mode:
+            try:
+                with Image.open(image_to_draw_path) as pil_img:
+                    original_w, original_h = pil_img.size
+                if original_h == 0:
+                    raise ValueError("Image has zero height")
+                img_h = content_w
+                img_w = (original_w / original_h) * img_h
+                img_x = content_x + (content_w - img_w) / 2
+                img_y = content_y + (content_h - img_h) / 2
+                c.drawImage(
+                    image_to_draw_path,
+                    img_x,
+                    img_y,
+                    width=img_w,
+                    height=img_h,
+                    preserveAspectRatio=False,
+                )
+            except Exception as e:
+                st.error(f"Erreur lors du dessin de l'image (mode pc_) : {e}")
+                draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
+        elif image_to_draw_path:
             if not question_text_for_card:
                 # No text, image takes up 90% of card width, centered
                 try:
@@ -599,7 +621,6 @@ if uploaded_recto_images_zip:
         st.success(f"{len(recto_images_dict)} images chargées depuis le fichier ZIP.")
     else:
         st.warning("Aucune image valide trouvée dans le fichier ZIP.")
-
 
 if uploaded_csv_file is None:
     st.warning("Veuillez uploader un fichier CSV pour commencer.")
