@@ -1327,10 +1327,18 @@ recto_color_style = st.radio(
 )
 
 # CSV Upload
-uploaded_csv_file = st.file_uploader("Uploader le fichier CSV", type=["csv"])
+uploaded_csv_file = st.file_uploader(
+    "Uploader le fichier CSV",
+    type=["csv"],
+    key="csv_uploader"
+)
 
 # Image Upload for Recto (multiple images via ZIP)
-uploaded_recto_images_zip = st.file_uploader("Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos", type=["zip"])
+uploaded_recto_images_zip = st.file_uploader(
+    "Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos",
+    type=["zip"],
+    key="images_zip_uploader"
+)
 
 recto_images_dict = {}
 if uploaded_recto_images_zip:
