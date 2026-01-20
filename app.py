@@ -204,7 +204,6 @@ class Grid:
 
 def compute_grid() -> Grid:
     # COLS, ROWS, NB_CARTES are now global variables, updated by Streamlit UI
-    global COLS, ROWS, NB_CARTES
     page_w, page_h = A4
     usable_w = page_w - 2*MARGIN - (COLS-1)*GAP
     usable_h = page_h - 2*MARGIN - (ROWS-1)*GAP
@@ -271,16 +270,6 @@ def draw_cut_marks(c: canvas.Canvas, grid: Grid):
         y_top_card = y_bottom_card + grid.card_h
         c.line(0, y_bottom_card, page_w, y_bottom_card) # Bottom edge of card, extends full page
         c.line(0, y_top_card, page_w, y_top_card) # Top edge of card, extends full page
-
-def compute_fitted_image_size(image_path: str, max_w: float, max_h: float) -> Tuple[float, float]:
-    with Image.open(image_path) as pil_img:
-        original_w, original_h = pil_img.size
-
-    if original_w == 0 or original_h == 0:
-        raise ValueError("Image has zero width or height")
-
-    scale = min(max_w / original_w, max_h / original_h)
-    return original_w * scale, original_h * scale
 
 def build_pdf(
     cards: List[Dict[str,str]],
@@ -472,20 +461,20 @@ def build_pdf(
                 # Text is present, use original image/text layout with safe sizing
                 available_h = max(content_h - (3 * ELEMENT_SPACING), 0)
                 min_text_box_h = 1.0 * cm
-                max_img_h = max(available_h - min_text_box_h, 0)
-                max_img_w = content_w
+                if available_h <= min_text_box_h:
+                    img_h = max(available_h * 0.4, 0)
+                else:
+                    img_h = min(content_h / 2, max(available_h - min_text_box_h, 0))
 
-                try:
-                    img_w, img_h = compute_fitted_image_size(image_to_draw_path, max_img_w, max_img_h)
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul des dimensions de l'image (avec texte) : {e}")
-                    draw_centered_text_in_box(c, content_x, content_y, content_w, content_h, question_text_for_card, style_recto)
-                    continue
+                # Text is present, use original image/text layout
+                img_h = content_h / 2
+                img_w = img_h
 
                 img_x = content_x + (content_w - img_w) / 2
                 img_y = content_y + ELEMENT_SPACING
 
-                text_box_h = max(content_h - (3 * ELEMENT_SPACING + img_h), 1)
+                text_box_h = max(available_h - img_h, 1)
+                text_box_h = content_h - (3 * ELEMENT_SPACING + img_h)
 
                 text_box_x = content_x
                 text_box_y = img_y + img_h + ELEMENT_SPACING
@@ -522,53 +511,6 @@ def build_pdf(
             current_verso_pil_image = uploaded_recto_images[card_verso_image_filename] # Assuming uploaded_recto_images can also contain verso images
 
         image_to_draw_verso_path = None
-
-        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
-
-        # Special handling for 'pc_' prefixed images (verso)
-        if card_verso_image_filename and card_verso_image_filename.lower().startswith('pc_'):
-            verso_text_for_card = "" # Suppress text for these cards
-            if current_verso_pil_image:
-                try:
-                    rotated_img_verso = current_verso_pil_image.rotate(-90, expand=True)
-
-                    bg_color_tuple_verso = (255, 255, 255) # White background for verso
-
-                    alpha_composite_img_verso = Image.new('RGB', rotated_img_verso.size, bg_color_tuple_verso)
-                    alpha_composite_img_verso.paste(rotated_img_verso, (0, 0), rotated_img_verso)
-
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_png_file_verso:
-                        rotated_image_path_verso = temp_png_file_verso.name
-                        alpha_composite_img_verso.save(temp_png_file_verso, format='PNG')
-                    temp_image_files_to_clean.append(rotated_image_path_verso)
-
-                    rotated_original_w_verso, rotated_original_h_verso = rotated_img_verso.size
-
-                    # Calculate drawing dimensions to fit rotated image within card dimensions (x,y,grid.card_w,grid.card_h)
-                    # Prioritize fitting the rotated image's height to the card's width
-                    draw_h_verso = grid.card_w
-                    if rotated_original_h_verso == 0:
-                        raise ValueError("Rotated verso image has zero height, cannot calculate aspect ratio.")
-                    draw_w_verso = (rotated_original_w_verso / rotated_original_h_verso) * draw_h_verso
-
-                    # If calculated width exceeds the card's height, adjust to fit height instead
-                    if draw_w_verso > grid.card_h:
-                        draw_w_verso = grid.card_h
-                        if rotated_original_w_verso == 0:
-                            raise ValueError("Rotated verso image has zero width, cannot calculate aspect ratio.")
-                        draw_h_verso = (rotated_original_h_verso / rotated_original_w_verso) * draw_w_verso
-
-                    # Center the image
-                    img_x_verso = x + (grid.card_w - draw_w_verso) / 2
-                    img_y_verso = y + (grid.card_h - draw_h_verso) / 2
-
-                    c.drawImage(rotated_image_path_verso, img_x_verso, img_y_verso,
-                                width=draw_w_verso, height=draw_h_verso, preserveAspectRatio=True)
-                except Exception as e:
-                    st.error(f"Erreur lors du traitement de l'image 'pc_' (verso) pour la carte {i}: {e}")
-                continue # Skip default image/text drawing for this card
-
-
         if current_verso_pil_image:
             try:
                 # For verso, assume white background for compositing if original is RGBA
@@ -586,6 +528,7 @@ def build_pdf(
                 st.error(f"Erreur lors du compositing de l'image de verso pour la carte {i}: {e}")
                 image_to_draw_verso_path = None
 
+        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
 
         if image_to_draw_verso_path:
             if not verso_text_for_card:
@@ -619,22 +562,13 @@ def build_pdf(
                     draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, "", style_verso)
             else:
                 # Text is present, use original image/text layout
-                available_h_verso = max(grid.card_h - (3 * ELEMENT_SPACING), 0)
-                min_text_box_h_verso = 1.0 * cm
-                max_img_h_verso = max(available_h_verso - min_text_box_h_verso, 0)
-                max_img_w_verso = grid.card_w
-
-                try:
-                    img_w_verso, img_h_verso = compute_fitted_image_size(image_to_draw_verso_path, max_img_w_verso, max_img_h_verso)
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul des dimensions de l'image de verso (avec texte) : {e}")
-                    draw_centered_text_in_box(c, x, y, grid.card_w, grid.card_h, verso_text_for_card, style_verso)
-                    continue
+                img_h_verso = grid.card_h / 2
+                img_w_verso = img_h_verso
 
                 img_x_verso = x + (grid.card_w - img_w_verso) / 2
                 img_y_verso = y + ELEMENT_SPACING
 
-                text_box_h_verso = max(grid.card_h - (3 * ELEMENT_SPACING + img_h_verso), 1)
+                text_box_h_verso = grid.card_h - (3 * ELEMENT_SPACING + img_h_verso)
 
                 text_box_x_verso = x
                 text_box_y_verso = img_y_verso + img_h_verso + ELEMENT_SPACING
@@ -670,14 +604,14 @@ st.title("Générateur de cartes recto/verso imprimables multi-usages")
 
 st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer 9 cartes recto/verso sur une feuille A4 en pdf.")
 st.text("Le contenu du fichier CSV est constitué au maximum de 9 lignes correspondant au nombre de cartes")
-st.write(" le format attendu du CSV est le suivant :")
+st.write(" le format attendu du CSV est le suivant :") 
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
 st.text("etc.")
 st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc, gris ou un code hexadécimal de la forme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le gris (#B3B3B3).")
 st.write("Vous pouvez choisir un remplissage complet du recto ou un cadre de 4 mm via l'option ci-dessous.")
-st.write("La couleur de fond du verso reste blanche.")
+st.write("La couleur de fond du verso reste blanche.") 
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 
