@@ -315,7 +315,7 @@ def build_pdf(
         )
 
         if use_pc_recto_mode:
-            use_frame_style = True
+            use_frame_style = False
 
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
