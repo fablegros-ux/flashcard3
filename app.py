@@ -314,24 +314,26 @@ def build_pdf(
             and card_recto_image_filename.lower().startswith("pc_")
         )
 
-        if use_pc_recto_mode:
-            use_frame_style = True
+        use_frame_layout = use_frame_style or use_pc_recto_mode
+        use_frame_border = use_frame_style
 
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
         content_w, content_h = grid.card_w, grid.card_h
 
-        if use_frame_style:
+        if use_frame_border:
             recto_fill_color = colors.white
             recto_image_background_color = colors.white
+
+        if use_frame_layout:
             content_x = x + RECTO_FRAME_WIDTH
             content_y = y + RECTO_FRAME_WIDTH
             content_w = grid.card_w - (2 * RECTO_FRAME_WIDTH)
             content_h = grid.card_h - (2 * RECTO_FRAME_WIDTH)
 
         # Recto text style: color adapted to background (depends on current_back_color)
-        recto_text_color = colors.black if use_frame_style else (colors.white if is_dark(current_back_color) else colors.black)
+        recto_text_color = colors.black if use_frame_layout else (colors.white if is_dark(current_back_color) else colors.black)
         style_recto = ParagraphStyle(
             "Recto", fontName=base_font, fontSize=16, leading=18,
             alignment=TA_CENTER, textColor=recto_text_color
@@ -340,7 +342,7 @@ def build_pdf(
         # Fill recto with background color
         c.setFillColor(recto_fill_color)
         c.rect(x, y, grid.card_w, grid.card_h, stroke=0, fill=1)
-        if use_frame_style:
+        if use_frame_border:
             c.setLineWidth(RECTO_FRAME_WIDTH)
             c.setStrokeColor(current_back_color)
             c.rect(
