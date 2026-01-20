@@ -380,9 +380,10 @@ def build_pdf(
 
                     rotated_original_w, rotated_original_h = rotated_img.size
                     short_side = min(rotated_original_w, rotated_original_h)
-                    if short_side == 0:
+                    long_side = max(rotated_original_w, rotated_original_h)
+                    if short_side == 0 or long_side == 0:
                         raise ValueError("Rotated image has zero width or height, cannot calculate aspect ratio.")
-                    scale = content_w / short_side
+                    scale = min(content_w / short_side, content_h / long_side)
                     draw_w = rotated_original_w * scale
                     draw_h = rotated_original_h * scale
 
