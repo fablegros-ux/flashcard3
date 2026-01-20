@@ -318,7 +318,7 @@ def build_pdf(
             content_w = grid.card_w - (2 * RECTO_FRAME_WIDTH)
             content_h = grid.card_h - (2 * RECTO_FRAME_WIDTH)
 
-        Recto text style: color adapted to background (depends on current_back_color)
+       # Recto text style: color adapted to background (depends on current_back_color)
         recto_text_color = colors.black if use_frame_style else (colors.white if is_dark(current_back_color) else colors.black)
         style_recto = ParagraphStyle(
             "Recto", fontName=base_font, fontSize=16, leading=18,
