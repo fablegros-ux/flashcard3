@@ -45,6 +45,13 @@ Fournir un fichier ZIP d’images :
 - la transparence du format **PNG** est pris en charge
 - Le nom indiqué en **colonne 3 (recto)** et **colonne 4 (verso)** doit correspondre **exactement** à un nom de fichier présent dans le ZIP (respect des majuscules/minuscules inclus).
 
+### Dimensions conseillées (300 dpi)
+Pour **remplir complètement l’intérieur du cadre (mode "Cadre 4 mm")**, utiliser des images au format portrait avec les dimensions suivantes :
+- **Largeur : ~626 px**
+- **Hauteur : ~969 px**
+
+Ces valeurs correspondent à la zone utile de la carte (A4, marges, espacements, cadre 4 mm) à **300 dpi**.
+
 ## Utilisation
 1. Ouvrir l’application Streamlit
 2. Téléverser ton fichier CSV
