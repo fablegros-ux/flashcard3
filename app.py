@@ -12,7 +12,7 @@ from reportlab.platypus import Frame, Paragraph, KeepInFrame
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.utils import ImageReader
-from PIL import Image
+from PIL import Image, ImageOps
 
 # ----------------------------
 # Réglages
@@ -304,22 +304,36 @@ def build_pdf(
         card_specific_color_string = cards_to_process[i].get("card_color_key")
         current_back_color = parse_color_string(card_specific_color_string, default_back_color)
 
+        question_text_for_card = cards_to_process[i].get("question", "").strip()
+        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
+
         use_frame_style = recto_color_style == "Cadre 4 mm"
+        use_pc_recto_mode = bool(
+            not question_text_for_card
+            and card_recto_image_filename
+            and card_recto_image_filename.lower().startswith("pc_")
+        )
+
+        use_frame_layout = use_frame_style or use_pc_recto_mode
+        use_frame_border = use_frame_style
+
         recto_fill_color = current_back_color
         recto_image_background_color = current_back_color
         content_x, content_y = x, y
         content_w, content_h = grid.card_w, grid.card_h
 
-        if use_frame_style:
+        if use_frame_border:
             recto_fill_color = colors.white
             recto_image_background_color = colors.white
+
+        if use_frame_layout:
             content_x = x + RECTO_FRAME_WIDTH
             content_y = y + RECTO_FRAME_WIDTH
             content_w = grid.card_w - (2 * RECTO_FRAME_WIDTH)
             content_h = grid.card_h - (2 * RECTO_FRAME_WIDTH)
 
-       # Recto text style: color adapted to background (depends on current_back_color)
-        recto_text_color = colors.black if use_frame_style else (colors.white if is_dark(current_back_color) else colors.black)
+        # Recto text style: color adapted to background (depends on current_back_color)
+        recto_text_color = colors.black if use_frame_layout else (colors.white if is_dark(current_back_color) else colors.black)
         style_recto = ParagraphStyle(
             "Recto", fontName=base_font, fontSize=16, leading=18,
             alignment=TA_CENTER, textColor=recto_text_color
@@ -328,7 +342,7 @@ def build_pdf(
         # Fill recto with background color
         c.setFillColor(recto_fill_color)
         c.rect(x, y, grid.card_w, grid.card_h, stroke=0, fill=1)
-        if use_frame_style:
+        if use_frame_border:
             c.setLineWidth(RECTO_FRAME_WIDTH)
             c.setStrokeColor(current_back_color)
             c.rect(
@@ -340,14 +354,52 @@ def build_pdf(
                 fill=0
             )
 
-        question_text_for_card = cards_to_process[i].get("question", "").strip()
-        card_recto_image_filename = cards_to_process[i].get("image_recto", "").strip()
-
         current_recto_pil_image = None
         if card_recto_image_filename and uploaded_recto_images and card_recto_image_filename in uploaded_recto_images:
              current_recto_pil_image = uploaded_recto_images[card_recto_image_filename]
 
         image_to_draw_path = None
+
+        # Special handling for 'pc_' prefixed images (recto, no text)
+        if use_pc_recto_mode:
+            if current_recto_pil_image:
+                try:
+                    normalized_img = ImageOps.exif_transpose(current_recto_pil_image)
+                    rotated_img = normalized_img
+                    if normalized_img.size[1] < normalized_img.size[0]:
+                        rotated_img = normalized_img.rotate(-90, expand=True)
+
+                    r, g, b = recto_image_background_color.red, recto_image_background_color.green, recto_image_background_color.blue
+                    bg_color_tuple = (int(r * 255), int(g * 255), int(b * 255))
+
+                    alpha_composite_img = Image.new('RGB', rotated_img.size, bg_color_tuple)
+                    alpha_composite_img.paste(rotated_img, (0, 0), rotated_img)
+
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_png_file:
+                        rotated_image_path = temp_png_file.name
+                        alpha_composite_img.save(temp_png_file, format='PNG')
+                    temp_image_files_to_clean.append(rotated_image_path)
+
+                    rotated_original_w, rotated_original_h = rotated_img.size
+                    short_side = min(rotated_original_w, rotated_original_h)
+                    long_side = max(rotated_original_w, rotated_original_h)
+                    if short_side == 0 or long_side == 0:
+                        raise ValueError("Rotated image has zero width or height, cannot calculate aspect ratio.")
+                    scale = min(content_w / short_side, content_h / long_side)
+                    draw_w = rotated_original_w * scale
+                    draw_h = rotated_original_h * scale
+
+                    # Center the image
+                    img_x = content_x + (content_w - draw_w) / 2
+                    img_y = content_y + (content_h - draw_h) / 2
+
+                    c.drawImage(rotated_image_path, img_x, img_y,
+                                width=draw_w, height=draw_h, preserveAspectRatio=True)
+                except Exception as e:
+                    st.error(f"Erreur lors du traitement de l'image 'pc_' (recto) pour la carte {i}: {e}")
+                continue # Skip default image/text drawing for this card
+
+
         if current_recto_pil_image:
             try:
                 r = recto_image_background_color.red
@@ -572,14 +624,23 @@ st.info(f"Format portrait (3x3 cartes). Nombre de cartes par page : {NB_CARTES}.
 recto_color_style = st.radio(
     "Style du recto :",
     ("Remplissage (couleur pleine)", "Cadre 4 mm"),
-    index=0
+    index=0,
+    key="recto_color_style"
 )
 
 # CSV Upload
-uploaded_csv_file = st.file_uploader("Uploader le fichier CSV", type=["csv"])
+uploaded_csv_file = st.file_uploader(
+    "Uploader le fichier CSV",
+    type=["csv"],
+    key="csv_uploader"
+)
 
 # Image Upload for Recto (multiple images via ZIP)
-uploaded_recto_images_zip = st.file_uploader("Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos", type=["zip"])
+uploaded_recto_images_zip = st.file_uploader(
+    "Uploader un fichier ZIP d'images PNG/JPG (facultatif) pour les rectos et versos",
+    type=["zip"],
+    key="images_zip_uploader"
+)
 
 recto_images_dict = {}
 if uploaded_recto_images_zip:
