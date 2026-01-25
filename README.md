@@ -22,18 +22,21 @@ Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des poin
 ### Exemples
 
 **Sans images**
-1. ma question1 (bleu) ; ma réponse1
-2. ; mon texte_verso et mon recto vide
-3. ma question2 ; ma réponse2  
+1. ma question1 (bleu) ; ma réponse1     -> uniquement du texte sur le recto et le verso. Le recto est de couleur bleu 
+2. ; mon texte_verso                     -> recto vierge de couleur grise (couleur par défaut) et du texte sur  le verso 
+3. ;;                                    -> recto vierge de couleur grise (couleur par défaut) et verso vierge de couleur blanche  
 
 **Avec images**
-1. ma question1 (#FF00FF) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png  
-2. ma question2 (vert);; photo_recto.jpg ; photo_photo_verso.jpg
-3. ;;; mon_illustration_verso.png
-     
+1. ma question1 (#FF00FF) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png     -> recto : texte et image avec une couleur recto (#FF00FF) et verso : texte et image sur fond blanc  
+2. ma question2 (vert);; photo_recto.jpg ; photo_photo_verso.jpg                        -> recto : texte et image avec une couleur recto vert et verso : image centrée
+3. ;;; mon_illustration_verso.png                                                       -> recto : fond vierge de couleur grise et verso : image centrée             
+
+**Cas particulier**
+Si une illustration **du recto** possède un nom de fichier commençant par pc_ (exemple pc_mon_image_recto.png) alors elle est destinée à remplir le recto entier et il ne doit pas y avoir de texte prévu pour le reco 
+;mon_texte_verso;pc_mon_image_recto.png
 
 ### Couleur du recto
-La couleur du reco est indiquée dans la **colonne 1**, entre parenthèses :
+La couleur du recto est indiquée dans la **colonne 1**, entre parenthèses :
 
 - Couleurs acceptées : `bleu`, `rouge`, `rose`, `vert`, `jaune`, `blanc`
 - Ou un code hexadécimal : `#FF00FF`, `#F00`, etc. (cf. https://htmlcolorcodes.com/fr/ pour définir la couleur désirée)
