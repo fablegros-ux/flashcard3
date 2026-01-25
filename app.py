@@ -508,11 +508,50 @@ def build_pdf(
 
         # --- Image Verso --- #
         card_verso_image_filename = cards_to_process[i].get("image_verso", "").strip()
+        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
+        use_pc_verso_mode = bool(
+            not verso_text_for_card
+            and card_verso_image_filename
+            and card_verso_image_filename.lower().startswith("pc_")
+        )
         current_verso_pil_image = None
         if card_verso_image_filename and uploaded_recto_images and card_verso_image_filename in uploaded_recto_images:
             current_verso_pil_image = uploaded_recto_images[card_verso_image_filename] # Assuming uploaded_recto_images can also contain verso images
 
         image_to_draw_verso_path = None
+        if use_pc_verso_mode and current_verso_pil_image:
+            try:
+                normalized_img_verso = ImageOps.exif_transpose(current_verso_pil_image)
+                rotated_img_verso = normalized_img_verso
+                if normalized_img_verso.size[1] < normalized_img_verso.size[0]:
+                    rotated_img_verso = normalized_img_verso.rotate(-90, expand=True)
+
+                alpha_composite_img_verso = Image.new('RGB', rotated_img_verso.size, (255, 255, 255))
+                alpha_composite_img_verso.paste(rotated_img_verso, (0, 0), rotated_img_verso)
+
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_png_file_verso:
+                    rotated_image_path_verso = temp_png_file_verso.name
+                    alpha_composite_img_verso.save(temp_png_file_verso, format='PNG')
+                temp_image_files_to_clean.append(rotated_image_path_verso)
+
+                rotated_original_w, rotated_original_h = rotated_img_verso.size
+                short_side = min(rotated_original_w, rotated_original_h)
+                long_side = max(rotated_original_w, rotated_original_h)
+                if short_side == 0 or long_side == 0:
+                    raise ValueError("Rotated verso image has zero width or height, cannot calculate aspect ratio.")
+                scale = min(grid.card_w / short_side, grid.card_h / long_side)
+                draw_w = rotated_original_w * scale
+                draw_h = rotated_original_h * scale
+
+                img_x = x + (grid.card_w - draw_w) / 2
+                img_y = y + (grid.card_h - draw_h) / 2
+
+                c.drawImage(rotated_image_path_verso, img_x, img_y,
+                            width=draw_w, height=draw_h, preserveAspectRatio=True)
+            except Exception as e:
+                st.error(f"Erreur lors du traitement de l'image 'pc_' (verso) pour la carte {i}: {e}")
+            continue
+
         if current_verso_pil_image:
             try:
                 # For verso, assume white background for compositing if original is RGBA
@@ -529,8 +568,6 @@ def build_pdf(
             except Exception as e:
                 st.error(f"Erreur lors du compositing de l'image de verso pour la carte {i}: {e}")
                 image_to_draw_verso_path = None
-
-        verso_text_for_card = cards_to_process[i].get("texte", "").strip()
 
         if image_to_draw_verso_path:
             if not verso_text_for_card:
