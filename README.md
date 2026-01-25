@@ -32,7 +32,8 @@ Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des poin
 3. ;;; mon_illustration_verso.png                                                       -> recto : fond vierge de couleur grise et verso : image centrée             
 
 **Cas particulier**
-Si une illustration **du recto** possède un nom de fichier commençant par pc_ (exemple pc_mon_image_recto.png) alors elle est destinée à remplir le recto entier et il ne doit pas y avoir de texte prévu pour le reco 
+Si une illustration **du recto** possède un nom de fichier commençant par pc_ (exemple pc_mon_image_recto.png) alors elle est destinée à remplir le recto entier et il ne doit pas y avoir de texte prévu pour le recto :
+
 ;mon_texte_verso;pc_mon_image_recto.png
 
 ### Couleur du recto
