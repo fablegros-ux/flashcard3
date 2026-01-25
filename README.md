@@ -1,146 +1,120 @@
-flashcard3
+---
 
-Français | English
-Français
-Générateur de cartes recto/verso imprimables (PDF A4)
+# flashcard3 🎴
 
-Application Streamlit permettant de générer des cartes rapidement recto/verso multi-usages à partir d’un fichier CSV (et d’un ZIP d’images optionnel), puis d’exporter un PDF A4 composé de 9 cartes au format portrait.
-🚀 Fonctionnalités
 
-    Import d’un fichier CSV (contenu des cartes)
+---
 
-    Import optionnel d’un ZIP d’images (PNG/JPG) pour illustrer recto/verso
+## Français
 
-    Génération d’un PDF A4 avec cartes recto/verso prêtes à imprimer
+### Générateur de cartes recto/verso imprimables (PDF A4)
 
-    Couleur du recto définie par carte : nom de couleur prédéfinie ou code hexadécimal
+Application Streamlit permettant de générer des cartes rapidement **recto/verso** multi-usages à partir d’un fichier **CSV** (et d’un ZIP d’images optionnel), puis d’exporter un **PDF A4 composé de 9 cartes au format portrait**.
 
-📊 Format attendu du CSV
+### 🚀 Fonctionnalités
 
-Le CSV contient au maximum 9 lignes. Chaque ligne décrit une carte, avec 2 à 4 colonnes séparées par des points-virgules (;) :
+* Import d’un fichier **CSV** (contenu des cartes)
+* Import optionnel d’un **ZIP d’images** (PNG/JPG) pour illustrer recto/verso
+* Génération d’un PDF A4 avec cartes **recto/verso** prêtes à imprimer
+* Couleur du **recto** définie par carte : nom de couleur prédéfinie ou code hexadécimal
 
-    Question (peut contenir une couleur entre parenthèses)
+### 📊 Format attendu du CSV
 
-    Réponse
+Le CSV contient **au maximum 9 lignes**. Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des points-virgules `;` :
 
-    (optionnel) Image recto (nom de fichier)
+1. **Question** (peut contenir une couleur entre parenthèses)
+2. **Réponse**
+3. *(optionnel)* **Image recto** (nom de fichier)
+4. *(optionnel)* **Image verso** (nom de fichier)
 
-    (optionnel) Image verso (nom de fichier)
+#### Exemples
 
-Exemples
+* **Sans images :** `ma question1 (bleu) ; ma réponse1` (Recto bleu, texte seulement).
+* **Avec images :** `ma question1 (#FF00FF) ; ma réponse1 ; img_r.png ; img_v.png`
+* **Cas "Pleine Carte" :** Si le nom de l'image recto commence par `pc_` (ex: `pc_image.png`), elle remplit toute la carte. Ne pas mettre de texte au recto dans ce cas.
 
-Sans images :
-
-    ma question1 (bleu) ; ma réponse1 -> Texte recto/verso. Recto de couleur bleu.
-
-    ; mon texte_verso -> Recto gris (défaut) et texte au verso.
-
-    ;; -> Recto gris et verso blanc, les deux vierges.
-
-Avec images :
-
-    ma question1 (#FF00FF) ; ma réponse1 ; image_r.png ; image_v.png -> Texte + image sur les deux faces.
-
-    ma question2 (vert);; photo_r.jpg ; photo_v.jpg -> Recto : texte + image. Verso : image centrée.
-
-Cas particulier (Plein Cadre) : Si le nom de l'image recto commence par pc_ (ex: pc_image.png), elle remplit tout le recto. Il ne doit pas y avoir de texte associé au recto. ; texte_verso ; pc_image_recto.png
-🎨 Couleur du recto
+#### Couleur du recto
 
 Indiquée en colonne 1 entre parenthèses :
 
-    Noms acceptés : bleu, rouge, rose, vert, jaune, blanc.
+* **Noms :** bleu, rouge, rose, vert, jaune, blanc.
+* **Hex :** `#FF00FF`, `#F00`, etc.
+* Par défaut : **gris**.
 
-    Hexadécimal : #FF00FF, #F00, etc.
+### 🖼️ Images (ZIP optionnel)
 
-    Par défaut : Gris.
+* Formats : **PNG** (transparence gérée) ou **JPG**.
+* **Dimensions conseillées (300 dpi) :** Largeur **~626 px** / Hauteur **~969 px** pour remplir le cadre (4 mm).
 
-🖼️ Images (ZIP optionnel)
+### 🛠️ Utilisation
 
-    Formats : PNG ou JPG (transparence PNG supportée).
+1. Ouvrir l’application Streamlit.
+2. Téléverser le fichier **CSV**.
+3. *Optionnel :* Téléverser l'archive **ZIP** d'images.
+4. Générer et télécharger le PDF.
+5. Imprimer (A4) et massicoter !
 
-    Le nom dans le CSV doit correspondre exactement au fichier dans le ZIP.
+---
 
-    Dimensions conseillées (300 dpi) : Pour le mode "Cadre 4 mm", utiliser 626 x 969 px (portrait).
+## English
 
-English
-Printable Double-Sided Flashcard Generator (A4 PDF)
+### Printable Double-Sided Flashcard Generator (A4 PDF)
 
-A Streamlit application to quickly generate multi-purpose double-sided cards from a CSV file (and an optional image ZIP), exporting a ready-to-print A4 PDF with 9 portrait cards.
-🚀 Features
+A Streamlit application designed to quickly generate multi-purpose **double-sided** cards from a **CSV** file (and an optional image ZIP). It exports a ready-to-print **A4 PDF containing 9 portrait-format cards**.
 
-    CSV file import (card content)
+### 🚀 Features
 
-    Optional Image ZIP import (PNG/JPG) for front/back illustrations
+* **CSV** file import (card content)
+* Optional **Image ZIP** import (PNG/JPG) for front and back illustrations
+* A4 PDF generation with **double-sided** cards ready for printing
+* Customizable **front color** per card: predefined names or hex codes
 
-    A4 PDF generation with double-sided layout
+### 📊 Expected CSV Format
 
-    Customizable front color per card: predefined names or hex codes
+The CSV must contain **at most 9 lines**. Each line represents one card, with **2 to 4 columns** separated by semicolons `;`:
 
-📊 CSV Format
+1. **Question** (can include a color in parentheses)
+2. **Answer**
+3. *(optional)* **Front Image** (filename)
+4. *(optional)* **Back Image** (filename)
 
-The CSV must contain a maximum of 9 rows. Each row uses 2 to 4 columns separated by semicolons (;):
+#### Examples
 
-    Question (can include a color in parentheses)
+* **Text only:** `my question1 (blue) ; my answer1` (Blue front, text on both sides).
+* **With images:** `my question1 (#FF00FF) ; my answer1 ; front_img.png ; back_img.png`
+* **"Full Card" case:** If the front image filename starts with `pc_` (e.g., `pc_photo.png`), it will fill the entire front side. No text should be provided for the front in this case.
 
-    Answer
+#### Front Side Color
 
-    (optional) Front Image (filename)
+Specified in Column 1 within parentheses:
 
-    (optional) Back Image (filename)
+* **Accepted names:** bleu (blue), rouge (red), rose (pink), vert (green), jaune (yellow), blanc (white).
+* **Hex codes:** `#FF00FF`, `#F00`, etc.
+* Default color: **grey**.
 
-Examples
+### 🖼️ Images (Optional ZIP)
 
-Without images:
+* Formats: **PNG** (transparency supported) or **JPG**.
+* **Recommended dimensions (300 dpi):** Width **~626 px** / Height **~969 px** to perfectly fit the 4 mm frame.
 
-    question1 (blue) ; answer1 -> Text on both sides. Front is blue.
+### 🛠️ How to use
 
-    ; back_text -> Blank grey front (default) and text on the back.
+1. Open the Streamlit app.
+2. Upload your **CSV** file.
+3. *Optional:* Upload the **ZIP** archive containing your images.
+4. Generate and download the PDF.
+5. Print (A4) and cut!
 
-With images:
+---
 
-    q1 (#FF00FF) ; a1 ; img_f.png ; img_b.png -> Text + image on both sides.
+## ⚠️ Limites / Limitations
 
-    ;;; back_illustration.png -> Grey front and centered image on the back.
+* **Max cards:** 9.
+* **Separator:** Semicolon (`;`).
+* **Text length:** Max 50 characters if an illustration is used.
 
-Special Case (Full Frame): If the front image filename starts with pc_ (e.g., pc_photo.png), it will fill the entire front side. No front text should be provided. ; back_text ; pc_front_image.png
-🎨 Front Color
+**Auteur / Author:** [Votre Nom/Pseudo]
 
-Specified in column 1 within parentheses:
+---
 
-    Accepted names: bleu, rouge, rose, vert, jaune, blanc (French names).
-
-    Hex code: #FF00FF, #F00, etc.
-
-    Default: Grey.
-
-🖼️ Images (Optional ZIP)
-
-    Formats: PNG or JPG (PNG transparency supported).
-
-    Filenames in the CSV must exactly match those in the ZIP (case-sensitive).
-
-    Recommended Dimensions (300 dpi): For the "4mm Frame" mode, use 626 x 969 px (portrait).
-
-🛠️ Utilisation / Usage
-
-    Ouvrir l’application / Open the app.
-
-    Téléverser le CSV / Upload your CSV.
-
-    (Optionnel) Téléverser le ZIP d'images / (Optional) Upload the image ZIP.
-
-    Générer et télécharger le PDF / Generate and download the PDF.
-
-    Imprimer et massicoter ! / Print and cut!
-
-⚠️ Limites / Limitations
-
-    Max 9 cartes / cards.
-
-    Séparateur CSV : ;
-
-    Max 50 signes (caractères) si une image est présente / 50 characters max if an image is included.
-
-👤 Auteur / Author
-
-[Ton Nom / Your Name]
+Souhaitez-vous que j'ajoute une section technique sur la manière d'installer l'application localement (pip install, etc.) ?
