@@ -32,9 +32,16 @@ Chaque ligne décrit une carte, avec **2 à 4 colonnes** séparées par des poin
 3. ;;; mon_illustration_verso.png                                                       -> recto : fond vierge de couleur grise et verso : image centrée             
 
 **Cas particulier**
-Si une illustration **du recto** possède un nom de fichier commençant par pc_ (exemple pc_mon_image_recto.png) alors elle est destinée à remplir le recto entier et il ne doit pas y avoir de texte prévu pour le recto :
+
+Si une illustration **du recto** possède un nom de fichier commençant par **pc_** (exemple : pc_mon_image_recto.png) alors elle est destinée à remplir le recto entier et il ne doit pas y avoir de texte prévu pour le recto :
 
 ;mon_texte_verso;pc_mon_image_recto.png
+
+**remarque :**
+
+une couleur de recto sans texte peut-être indiquée :
+
+(jaune);mon_texte_verso  -> recto vierge de couleur jaune et un texte sur le verso.
 
 ### Couleur du recto
 La couleur du recto est indiquée dans la **colonne 1**, entre parenthèses :
