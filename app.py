@@ -223,6 +223,19 @@ def draw_card_border(c: canvas.Canvas, x: float, y: float, w: float, h: float, s
     c.setStrokeColor(stroke_color)
     c.rect(x, y, w, h, stroke=1, fill=0)
 
+def format_card_text(text: str) -> str:
+    if not text:
+        return ""
+
+    def bold_replacer(match: re.Match) -> str:
+        bold_text = match.group(1)
+        return f"<b>{bold_text}</b><br/>"
+
+    formatted_text = re.sub(r"\*\*(.+?)\*\*", bold_replacer, text)
+    formatted_text = formatted_text.replace(";", "<br/>").replace("\n", "<br/>")
+    formatted_text = re.sub(r"(?:<br/>\s*)+$", "", formatted_text)
+    return formatted_text
+
 def draw_centered_text_in_box(c: canvas.Canvas, x: float, y: float, w: float, h: float, text: str, style: ParagraphStyle):
     pad = 6 # Internal padding for the text within the card
 
@@ -232,8 +245,7 @@ def draw_centered_text_in_box(c: canvas.Canvas, x: float, y: float, w: float, h:
     inner_w = w - 2 * pad
     inner_h = h - 2 * pad
 
-    # Replace semicolons and newlines with line breaks for display
-    formatted_text = (text or "").replace(";", "<br/>").replace("\n","<br/>")
+    formatted_text = format_card_text(text)
     p = Paragraph(formatted_text if formatted_text.strip() else "&nbsp;", style)
 
     # Get the actual height the paragraph would take if wrapped within inner_w
