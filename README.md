@@ -32,7 +32,7 @@ Le CSV contient **au maximum 9 lignes**. Chaque ligne décrit une carte, avec **
 * **Sans images :** `ma question1 (bleu) ; ma réponse1` (Recto bleu, texte  sur le recto et le verso).
 * **Avec images :** `ma question1 (#7F28B8) ; ma réponse1 ; img_r.png ; img_v.png` (Recto de couleur violette, texte et image sur le recto, texte et image sur le verso) 
 * **Cas "Pleine Carte" :** Si le nom de l'image recto commence par `pc_` (ex: `pc_image.png`), elle remplit toute la carte. Ne pas mettre de texte au recto dans ce cas.
-* ;ceci est une image de chat;pc_chat.png 
+* **exemple :**  ; ceci est une image de chat;pc_chat.png 
 
 #### Couleur du recto
 
