@@ -669,10 +669,10 @@ st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonn
 st.write("")
 
 st.subheader("Exemples de rendu")
-st.caption(
-    "Vous pouvez afficher ici un exemple JPG et/ou PDF hébergé (GitHub Releases, Google Drive partage public, Cloudinary, S3, etc.). "
-    "Configurez les variables d'environnement EXAMPLE_JPG_URL et EXAMPLE_PDF_URL."
-)
+#st.caption(
+  #  "Vous pouvez afficher ici un exemple JPG et/ou PDF hébergé (GitHub Releases, Google Drive partage public, Cloudinary, S3, etc.). "
+  #  "Configurez les variables d'environnement EXAMPLE_JPG_URL et EXAMPLE_PDF_URL."
+#)
 
 if EXAMPLE_JPG_URL or EXAMPLE_PDF_URL:
     if EXAMPLE_JPG_URL:
