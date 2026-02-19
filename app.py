@@ -33,7 +33,7 @@ RECTO_FRAME_WIDTH = 4 * mm   # Largeur du cadre pour l'option recto "cadre"
 DEFAULT_BACK_COLOR_NAME = "gris"
 DEFAULT_BACK_COLOR = colors.HexColor("#B3B3B3")
 EXAMPLE_JPG_URL = os.getenv("EXAMPLE_JPG_URL", "")
-EXAMPLE_PDF_URL = os.getenv("https://github.com/fablegros-ux/flashcard3/blob/main/cartes_recto_verso-15.pdf", "")
+EXAMPLE_PDF_URL = os.getenv("https://github.com/fablegros-ux/flashcard3/blob/main/cartes_recto_verso-15.pdf", "https://github.com/fablegros-ux/flashcard3/blob/main/cartes_recto_verso-15.pdf")
 COLOR_MAP = {
     "bleu": colors.HexColor("#2D6CDF"),
     "rouge": colors.HexColor("#D64541"),
