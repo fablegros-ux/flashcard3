@@ -3,6 +3,7 @@ import os, re, csv, io, zipfile
 import tempfile
 from typing import List, Dict, Tuple, Optional
 import streamlit as st
+import streamlit.components.v1 as components
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -31,6 +32,8 @@ RECTO_FRAME_WIDTH = 4 * mm   # Largeur du cadre pour l'option recto "cadre"
 # Couleurs (recto)
 DEFAULT_BACK_COLOR_NAME = "gris"
 DEFAULT_BACK_COLOR = colors.HexColor("#B3B3B3")
+EXAMPLE_JPG_URL = os.getenv("EXAMPLE_JPG_URL", "")
+EXAMPLE_PDF_URL = os.getenv("EXAMPLE_PDF_URL", "")
 COLOR_MAP = {
     "bleu": colors.HexColor("#2D6CDF"),
     "rouge": colors.HexColor("#D64541"),
@@ -664,6 +667,28 @@ st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la
 st.write("Vous pouvez choisir un remplissage complet du recto ou un cadre de 4 mm via l'option ci-dessous.")
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
+
+st.subheader("Exemples de rendu")
+st.caption(
+    "Vous pouvez afficher ici un exemple JPG et/ou PDF hébergé (GitHub Releases, Google Drive partage public, Cloudinary, S3, etc.). "
+    "Configurez les variables d'environnement EXAMPLE_JPG_URL et EXAMPLE_PDF_URL."
+)
+
+if EXAMPLE_JPG_URL or EXAMPLE_PDF_URL:
+    if EXAMPLE_JPG_URL:
+        st.markdown(f"[🔎 Ouvrir l'exemple JPG dans un nouvel onglet]({EXAMPLE_JPG_URL})")
+        st.image(EXAMPLE_JPG_URL, caption="Exemple JPG", width='stretch')
+
+    if EXAMPLE_PDF_URL:
+        st.markdown(f"[📄 Ouvrir l'exemple PDF dans un nouvel onglet]({EXAMPLE_PDF_URL})")
+        components.iframe(EXAMPLE_PDF_URL, height=600, scrolling=True)
+else:
+    st.info(
+        "Aucun exemple configuré pour l'instant. Ajoutez EXAMPLE_JPG_URL et/ou EXAMPLE_PDF_URL dans l'environnement "
+        "pour afficher un aperçu directement dans cette interface."
+    )
+
+st.markdown("---")
 
 st.subheader("Disposition des cartes")
 st.info(f"Format portrait (3x3 cartes). Nombre de cartes par page : {NB_CARTES}.")
