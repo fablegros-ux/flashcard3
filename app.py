@@ -223,6 +223,19 @@ def draw_card_border(c: canvas.Canvas, x: float, y: float, w: float, h: float, s
     c.setStrokeColor(stroke_color)
     c.rect(x, y, w, h, stroke=1, fill=0)
 
+def format_card_text(text: str) -> str:
+    if not text:
+        return ""
+
+    def bold_replacer(match: re.Match) -> str:
+        bold_text = match.group(1)
+        return f"<b>{bold_text}</b><br/>"
+
+    formatted_text = re.sub(r"\*\*(.+?)\*\*", bold_replacer, text)
+    formatted_text = formatted_text.replace(";", "<br/>").replace("\n", "<br/>")
+    formatted_text = re.sub(r"(?:<br/>\s*)+$", "", formatted_text)
+    return formatted_text
+
 def draw_centered_text_in_box(c: canvas.Canvas, x: float, y: float, w: float, h: float, text: str, style: ParagraphStyle):
     pad = 6 # Internal padding for the text within the card
 
@@ -232,8 +245,7 @@ def draw_centered_text_in_box(c: canvas.Canvas, x: float, y: float, w: float, h:
     inner_w = w - 2 * pad
     inner_h = h - 2 * pad
 
-    # Replace semicolons and newlines with line breaks for display
-    formatted_text = (text or "").replace(";", "<br/>").replace("\n","<br/>")
+    formatted_text = format_card_text(text)
     p = Paragraph(formatted_text if formatted_text.strip() else "&nbsp;", style)
 
     # Get the actual height the paragraph would take if wrapped within inner_w
@@ -641,8 +653,8 @@ def build_pdf(
 # ----------------------------
 st.title("Générateur de cartes recto/verso imprimables multi-usages")
 
-st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer 9 cartes recto/verso sur une feuille A4 en pdf.")
-st.text("Le contenu du fichier CSV est constitué au maximum de 9 lignes correspondant au nombre de cartes")
+st.write("Uploadez votre fichier CSV et une archive ZIP contenant les illustrations (facultatif) pour générer rapidement 9 cartes recto/verso sur une feuille A4 en pdf.")
+st.text("Le contenu du fichier CSV est constitué de 9 lignes correspondant au nombre de cartes")
 st.write(" le format attendu du CSV est le suivant :") 
 st.text("ma question1 (couleur_ou_#CODEHEX) ; ma réponse1 ; mon_image_recto.png ; mon_image_verso.png")
 st.text("ma question2 (couleur_ou_#CODEHEX) ; ma réponse2")
@@ -650,7 +662,6 @@ st.text("etc.")
 st.write("(couleur_ou_#CODEHEX) est la couleur du recto de la carte - choix possibles : bleu, rouge, rose, vert, jaune, blanc, gris ou un code hexadécimal de la forme #FF00FF ou #F00.")
 st.write("Si aucune couleur n'est indiquée (maquestion1 ; maréponse1) alors la couleur par défaut du recto est le gris (#B3B3B3).")
 st.write("Vous pouvez choisir un remplissage complet du recto ou un cadre de 4 mm via l'option ci-dessous.")
-st.write("La couleur de fond du verso reste blanche.") 
 st.write("Le nom du fichier image dans la 3e colonne du CSV (recto) et 4e colonne (verso) doit correspondre exactement au nom d'un fichier PNG/JPG dans l'archive ZIP.")
 st.write("")
 

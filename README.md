@@ -29,9 +29,10 @@ Le CSV contient **au maximum 9 lignes**. Chaque ligne décrit une carte, avec **
 
 #### Exemples
 
-* **Sans images :** `ma question1 (bleu) ; ma réponse1` (Recto bleu, texte seulement).
-* **Avec images :** `ma question1 (#FF00FF) ; ma réponse1 ; img_r.png ; img_v.png`
+* **Sans images :** `ma question1 (bleu) ; ma réponse1` (Recto bleu, texte  sur le recto et le verso).
+* **Avec images :** `ma question1 (#7F28B8) ; ma réponse1 ; img_r.png ; img_v.png` (Recto de couleur violette, texte et image sur le recto, texte et image sur le verso) 
 * **Cas "Pleine Carte" :** Si le nom de l'image recto commence par `pc_` (ex: `pc_image.png`), elle remplit toute la carte. Ne pas mettre de texte au recto dans ce cas.
+* **exemple :**  ; ceci est une image de chat;pc_chat.png 
 
 #### Couleur du recto
 
@@ -44,7 +45,8 @@ Indiquée en colonne 1 entre parenthèses :
 ### 🖼️ Images (ZIP optionnel)
 
 * Formats : **PNG** (transparence gérée) ou **JPG**.
-* **Dimensions conseillées (300 dpi) :** Largeur **~626 px** / Hauteur **~969 px** pour remplir le cadre (4 mm).
+* Les images sont redimensionnées automatiquement.
+* **Dimensions conseillées (300 dpi) :** Largeur **~626 px** / Hauteur **~969 px** pour remplir la totalité du recto.
 
 ### 🛠️ Utilisation
 
